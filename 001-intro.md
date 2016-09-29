@@ -342,3 +342,5 @@ VODML element which can provide this link in a rather simple manner.
 
 [^5]: Or alternatively as a transformation of a (standard) serialization
     of the data model.
+
+stupid change
