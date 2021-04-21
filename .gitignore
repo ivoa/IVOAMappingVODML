@@ -1,7 +1,12 @@
-*.aux
-*.log
-*.pdf
-*.tex
+MappingVODML.aux
+MappingVODML.html
+MappingVODML.log
+MappingVODML.out
+MappingVODML.pdf
+MappingVODML.toc
+MappingVODML.fls
+ivoatexmeta.tex
+MappingVODML.fdb_latexmk
 
 ## vi
 *~

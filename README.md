@@ -8,8 +8,8 @@ The document uses [`pandoc`](http://pandoc.org) Markdown and
 
 Output documents are build in the `output` directory.
 
-How to build the document
-=========================
+How to build the document using ceral/pandoc
+============================================
 
 In order to process the document, run the following command:
 
@@ -33,6 +33,12 @@ If you also have LaTeX installed you can produce a PDF:
 ./cereal/bin/pdf.sh *.md metadata.yaml
 .\cereal\bin\pdf.bat *.md .\metadata.yaml
 ```
+
+How to build using ivoatex
+==========================
+The file MappingVODML.tex is a LaTeX port of the .md files, which were going to provide a reworked mark-down version of the 
+[MappingDMToVOTable-v1.0.docx](https://volute.g-vo.org/svn/!svn/bc/5630/trunk/projects/dm/vo-dml-org/doc/MappingDMtoVOTable-v1.0.docx) file.
+To build it follow the description at the [ivoatex](https://github.com/ivoa-std/ivoatex) page. 
 
 How to contribute
 =================
