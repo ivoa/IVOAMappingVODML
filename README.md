@@ -4,13 +4,25 @@ This repository hosts the master files of the IVOA *Mapping Data Models to VOTab
 
 The document is currently in a Working Draft stage.
 
-The document uses [`pandoc`](http://pandoc.org) Markdown and
+
+The original version of this document uses [`pandoc`](http://pandoc.org) Markdown and
 [`cereal`](https://github.com/olaurino/cereal) as typesetting tools.
 
-Output documents are build in the `output` directory.
+We are in the process of porting this to [ivoatex](https://github.com/ivoa-std/ivoatex) which will from now on (2021-04-25)
+be the main target of this effort.
+
+
+How to build using ivoatex
+==========================
+The file MappingVODML.tex is a LaTeX port of the .md files, which were going to provide a reworked mark-down version of the 
+[MappingDMToVOTable-v1.0.docx](https://volute.g-vo.org/svn/!svn/bc/5630/trunk/projects/dm/vo-dml-org/doc/MappingDMtoVOTable-v1.0.docx) file.
+To build it follow the description at the [ivoatex](https://github.com/ivoa-std/ivoatex) page. 
+
 
 How to build the document using ceral/pandoc
 ============================================
+
+Output documents are build in the `output` directory.
 
 In order to process the document, run the following command:
 
@@ -35,11 +47,7 @@ If you also have LaTeX installed you can produce a PDF:
 .\cereal\bin\pdf.bat *.md .\metadata.yaml
 ```
 
-How to build using ivoatex
-==========================
-The file MappingVODML.tex is a LaTeX port of the .md files, which were going to provide a reworked mark-down version of the 
-[MappingDMToVOTable-v1.0.docx](https://volute.g-vo.org/svn/!svn/bc/5630/trunk/projects/dm/vo-dml-org/doc/MappingDMtoVOTable-v1.0.docx) file.
-To build it follow the description at the [ivoatex](https://github.com/ivoa-std/ivoatex) page. 
+
 
 How to contribute
 =================
