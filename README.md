@@ -1,7 +1,6 @@
-        [![PDF-Preview](https://img.shields.io/badge/Preview-PDF-blue)](../../releases/download/auto-pdf-preview/MappingVODML-draft.pdf)
+[![PDF-Preview](https://img.shields.io/badge/Preview-PDF-blue)](../../releases/download/auto-pdf-preview/MappingVODML-draft.pdf)
         
-     This repository hosts the master files of the IVOA *Mapping Data Models to
-VOTable* document.
+This repository hosts the master files of the IVOA *Mapping Data Models to VOTable* document.
 
 The document is currently in a Working Draft stage.
 
