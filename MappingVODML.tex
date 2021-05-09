@@ -141,7 +141,7 @@ VOTables according to data models. Thus, it enables:
 \item
   Data providers to annotate VOTables so to faithfully map VOTable
   contents to one or more data models, as long as such Data Models are
-  expressed according to the VO-DML standard {[}@vodml{]}. In other
+  expressed according to the VO-DML standard \citet{2018ivoa.spec.0910L}. In other
   terms, they can \emph{serialize} data model \emph{instances} in a
   standard, interoperable way. Some examples are provided below as
   concrete use cases.
@@ -172,7 +172,7 @@ on both data providers and data consumers, improving the overall
 interoperability, at least for what VOTable is concerned.
 
 This document also represents a template for mapping data model
-instances to other formats (see {[}@sec:other-formats{]}).
+instances to other formats (see \ref{sec:other-formats}).
 
 \subsection{Concrete Use Cases}\label{concrete-use-cases}
 
@@ -684,9 +684,9 @@ element.}\label{mapping-with-the-vodml-element.}
 This section summarizes the technical basis of this reccomendation.
 
 The present specification, in conjunction with with VO-DML
-recommendation {[}@vodml{]} provides a formal mechanism for using such
+recommendation \cite{2018ivoa.spec.0910L} provides a formal mechanism for using such
 data model identifiers, although different from the original
-\texttt{@utype} attribute definition and its usages {[}@usages{]}.
+\texttt{@utype} attribute definition and its usages \cite{note:utypeusage}.
 
 VOTable 1.2 introduced the \texttt{@utype} attribute, which was intended
 to represent ``pointers into a data model''. A precise and formal
@@ -695,8 +695,8 @@ description of its meaning was missing though.
 
 First, a formal definition of the target of the pointers was missing. To
 solve this, data models were usually accompanied by a list of
-\emph{utypes} (\textbf{TODO} {[}TBD refer to STC, Characterization,
-Spectrum?{]}), and these could be used as values for said
+\emph{utypes} (\textbf{TODO} TBD refer to STC, Characterization,
+Spectrum?), and these could be used as values for said
 \texttt{@utype}, be it in VOTable or for example in the Table Access
 Protocol metadata. These were not linked in any formal, machine readable
 way to the underlying data model.
@@ -712,14 +712,14 @@ the question how to reuse utypes from one model in the definition of
 another.
 
 The approach is basically not much more than another vocabulary, similar
-to UCDs {[}@ucd{]}, or SKOS vocabularies {[}@skos{]}, obtained by
+to UCDs \cite{2018ivoa.spec.0527M}, or SKOS vocabularies \cite{2009ivoa.spec.1007G}, obtained by
 different means. Efforts were made to provide some structure to these
 values that might provide some hints of their location in a model, but
 there was no formal mechanism on how to derive that structure and it was
 unclear whether it could truly represent the richness of the existing
 and future data models. In particular there was no standard defined how
 this could be achieved and no common usage patterns were discovered
-{[}@usages{]}.
+\cite{note:utypeusage}.
 
 VO-DML provides a formal target for these pointers in the data model
 itself and formally defines how models can be reused in the definition
