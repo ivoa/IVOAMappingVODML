@@ -1,0 +1,2221 @@
+  
+\documentclass[11pt,a4paper]{ivoa}
+\input tthdefs
+\usepackage{listings}
+\lstset{basicstyle=\tiny\ttfamily}
+
+\title{Mapping VO-DML}
+
+% see ivoatexDoc for what group names to use here
+\ivoagroup{DM}
+
+\author{Omar Laurino}
+\author{Gerard Lemson}
+
+\editor{Omar Laurino}
+\editor{Gerard Lemson}
+
+% \previousversion[????URL????]{????Concise Document Label????}
+\previousversion{This is the first public release}
+       
+
+\begin{document}
+\begin{abstract}
+Data providers and curators provide a great deal of metadata with their
+data ﬁles: this metadata is invaluable for users and for Virtual Observatory
+software developers. In order to be interoperable, the metadata must refer
+to common Data Models. This speciﬁcation deﬁnes a scheme for annotating
+VOTable instances in a standard, consistent, interoperable fashion, so that
+each piece of metadata can unambiguously refer to the correct Data Model
+element it expresses, assuming there is a suitable data model. With this
+speciﬁcation, data providers can unambiguously and completely represent
+Data Model instances in the VOTable format, and clients can build faithful
+representations of such instances. The mapping is operated through opaque,
+portable strings.
+\end{abstract}
+
+
+\section*{Acknowledgments}
+
+\section*{History of this document}\label{history-of-this-document}
+\addcontentsline{toc}{subsection}{History of this document}
+
+\textbf{TODO} migrate document's history
+
+\section{Introduction}\label{introduction}
+
+Data providers put a lot of effort in organizing and maintaining
+metadata that precisely describes their data files. This information is
+invaluable for users and for software developers that provide users with
+user-friendly VO-enabled applications. For example, such metadata can
+characterize the different axes of the reference system in which the
+data is expressed, or the history of a measurement, like the publication
+where the measurement was drawn from, the calibration type, and so
+forth. In order to be interoperable, this metadata must refer to some
+Data Model that is known to all parties: the IVOA defines and maintains
+such standardized Data Models that describe astronomical data in an
+abstract, interoperable way.
+
+In order to enable such interoperable, extensible, portable annotation
+of data files, one needs:
+
+\begin{itemize}
+\item
+  A language to unambiguously and efficiently describe Data Models and
+  their elements' identifiers (VO-DML, \cite{2018ivoa.spec.0910L}).
+\item
+  Pointers linking a specific piece of information (data or metadata) to
+  the Data Model element it represents\footnote{This used to be the
+    assumed role of the \texttt{@utype} attribute in VOTable and for
+    example TAP. This document is based on the new \texttt{VODML}
+    element in \texttt{VOTable} 1.4 \cite{2019ivoa.spec.1021O}}.
+\item
+  A mapping specification that unambiguously describes the mapping
+  strategies that lead to faithful representations of Data Model
+  instances in a specific format.
+\end{itemize}
+
+Without a consistent language for describing Data Models there can be no
+interoperability among them, through reuse of models by models, or in
+their use in other specifications. Such a language must be expressive
+and formal enough to enable the serialization of data types of growing
+complexity and the development of reusable, extensible software
+components and libraries that can make the technological uptake of the
+VO standards seamless and scalable.
+
+For serializations to non-standard representations one needs to map the
+abstract Data Model to a particular format meta-model. For instance, the
+VOTable format defines \texttt{RESOURCE}s, \texttt{TABLE}s,
+\texttt{PARAM}s, \texttt{FIELD}s, and so forth, and provides explicit
+attributes such as \texttt{units}, \texttt{UCD}s, and \texttt{utypes}:
+in order to represent instances of a Data Model, one needs to define an
+unambiguous mapping between these meta-model elements and the Data Model
+language, so to make it possible for software to be able to parse a file
+according to its Data Model and to Data Providers to mark up their data
+products.
+
+While one might argue that a standard for portable, interoperable Data
+Model representation would have been required before one could think
+about such a mapping, we are specifying it only at a later stage. In
+particular several different interpretations of \texttt{UTYPE}s have
+been proposed and used \cite{note:utypeusage}. This specification aims to resolve
+this ambiguity.
+
+As a matter of fact, existing files and services can be made compliant
+according to this specification by simply \emph{adding} annotations and
+keeping the old ones. So they do not need to \emph{change} them in such
+a way that would necessarily make them incompatible with existing
+software.
+
+Several sections of this document are utterly informative: in
+particular, the appendices provide more information about the impact of
+this specification to the current and future IVOA practices.
+
+This specification describes how to represent Data Model instances using
+the VOTable schema. This representation uses the
+\texttt{\textless{}VODML\textgreater{}} element introduced for this
+purpose in VOTable v1.4 \cite{2019ivoa.spec.1021O} and the structure of the VOTable
+meta-model elements to indicate how instances of data models are stored
+in VOTable documents. We show many examples and give a complete listing
+of allowed mapping patterns.
+
+In sections \ref{sec:usecases} to \ref{sec:info} we give an
+introduction to why and how the VODML elements can be used to hold
+pointers into the data models.
+
+Section \ref{sec:normative} is a rigorous listing of all valid
+annotations, and the normative part of the specification.
+
+The appendices contain additional material. Section \ref{sec:schema}
+describes the VODML annotation element that was added to the VOTable
+schema to support this mapping specification. Section \ref{sec:clients}
+describes different types of client software and how they could deal
+with VOTables annotated according to the current specification.
+
+\textbf{Throughout the document we will refer to some real or example
+Data Models. Please remember that such models have been designed to be
+fairly simple, yet complex enough to illustrate all the possible
+constructs that this specification covers. They are not to be intended
+as actual DMs, nor, by any means, this specification suggests their
+adoption by the IVOA or by users and or Data Providers. In some cases we
+refer to actual DMs in order to provide an idea of how this
+specification relates to real life cases involving actual DMs.}
+
+\section{Use Cases}\label{sec:usecases}
+
+\subsection{General Remarks}\label{general-remarks}
+
+This specification provides a standardized mechanism for annotating
+VOTables according to data models. Thus, it enables:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Data providers to annotate VOTables so to faithfully map VOTable
+  contents to one or more data models, as long as such Data Models are
+  expressed according to the VO-DML standard \citet{2018ivoa.spec.0910L}. In other
+  terms, they can \emph{serialize} data model \emph{instances} in a
+  standard, interoperable way. Some examples are provided below as
+  concrete use cases.
+\item
+  Service clients to faithfully reconstruct the semantics of the data
+  model instances they consume in VOTable format. Some concrete examples
+  are also provided below.
+\end{itemize}
+
+One of the main goals of this specification is also to alleviate data
+modelers from the burden of defining special serialization strategies
+for their data models, at least in most cases. Specialized
+serializations might be defined if there are special constraints in term
+of efficiency or effectiveness which require specialized serialization
+schemes.
+
+As a corollary to the above paragraph, client applications can also be
+implemented on top of standardized Input/Output libraries that implement
+the present specification, as the serialization mechanisms are
+standardized across data models. Without this specification clients
+would need to be coded against specialized serializations for each data
+model. Similarly, data providers can now serialize instances of any data
+model to VOTable using the same annotation mechanism.
+
+As a result, this mapping specification should enable a large number of
+concrete use cases to be implemented, by reducing the annotation burden
+on both data providers and data consumers, improving the overall
+interoperability, at least for what VOTable is concerned.
+
+This document also represents a template for mapping data model
+instances to other formats (see \ref{sec:other-formats}).
+
+\subsection{Concrete Use Cases}\label{concrete-use-cases}
+
+\subsubsection{STC clients}\label{stc-clients}
+
+A typical usage scenario may be a VOTable client that is sensitive to
+certain models only, say Space Time Coordinates (STC). Such a tool may
+be written to understand annotations for instance of STC types,
+manipulate such instances, and write them back to disk.
+
+By finding an element mapped to a type definition from the STC model,
+the application may infer for example that it represents a coordinate on
+the sky and use this information according to its requirements. For
+example, the client may convert all positions expressed in a certain
+coordinate frame to a different coordinate frame through some specific
+transform.
+
+Note that the client may never parse any VO-DML description files, as
+the knowledge about the data model may be assumed when the client code
+is developed.
+
+Also, the STC annotations are the same in all the contexts in which an
+STC type is used. So, for instance, if a VOTable describes catalogues of
+sources, and each source has a position attribute describing its
+coordinates in a specific reference frame, the \emph{instance}
+describing the source's position would be annotated in the exact same
+way as, say, the central position of a cone search query.
+
+So, the STC tool may not necessarily understand other models where STC
+types are \emph{used}, but it may still be able to find the instances of
+those types.
+
+Note that the same file may contain multiple tables and in any case STC
+model instances defined in multiple coordinate systems or frames.
+
+\subsubsection{VO-enabled plotting and fitting
+applications}\label{vo-enabled-plotting-and-fitting-applications}
+
+An application whose main requirement is to display, plot, and/or fit
+data cannot be required to be aware of \emph{all} astronomical data
+models. However, if these data models shared some common representation
+of quantities, their errors, and their units, the application may
+discover these pieces of information and structure a plot, or perform a
+fit, with minimal user input: each point may be associated with an error
+bar, upper/lower limits, and other metadata. The application remains
+mostly model-agnostic: it is not required to \emph{understand}
+high-level concepts like Spectrum, or Photometry.
+
+Also, knowledge about the basic building-block types like quantities and
+coordinates, may be hard-coded during development.
+
+\subsubsection{Data discovery portals}\label{data-discovery-portals}
+
+Data discovery portals allow users to query VO services, display
+metadata, filter responses, and fetch datasets.
+
+While these applications may not be particularly interested in specific
+data models, standardized annotation mechanisms may allow their
+developers to dynamically capture the structure of the metadata, and
+provide better exploratory tools rather than flat tables.
+
+Consider for example filtering tables according to an arbitrary physical
+quantity, say for instance the spectral coverage of a spectrum, the
+filter with which an image was taken, or the luminosity of a source in a
+certain band. The portal may provide a friendly interface that allows
+users to select the physical quantities using standardized
+representations. It may do so dynamically for all the pieces of metadata
+present in the dataset, rather than limiting this functionality to a set
+of hard-coded metadata properties.
+
+Also, the application may group data and metadata in a tree of concepts
+the user is familiar with, rather than flattening the instrinsic
+structure of the data.
+
+By allowing such applications to faithfully represent data model
+instances the way they were curated and annotated by data providers, and
+according to the scientific domain with which users are familiar, this
+specification may enable users to easily make sense of the file
+contents, even if the application lacks any knowledge of high-level data
+models.
+
+Parsing VO-DML description files may be useful to provide the user with
+even more, and more accurate, information.
+
+\subsubsection{Color-color diagrams}\label{color-color-diagrams}
+
+The creation of a color-color diagram requires knowledge of the
+semantics of the rows and columns in a table, e.g.~a source catalog.
+Also, some columns may be grouped together in a structured way, e.g.~a
+luminosity measurement that goes with its error and a reference to the
+photometry filter it is associated with, although such columns might not
+be adjacent in the file.
+
+Usually, plotting applications are not aware of the semantics of the
+columns in a table, and users may have to select all the relevant
+columns in order to produce a meaningful plot. They may also have to
+convert between units, and so on.
+
+With a standardized annotation and knowledge of the annotations for
+basic quantities a plotting application may find that there are
+luminosity measurements in a VOTable and allow users to display
+color-color diagrams, with error bars, and possibly with domain-specific
+actions like unit conversions, seamlessly and requiring minimal input.
+
+There are many examples of very specific use cases that may be
+implemented by science applications that are aware of the semantics of
+specific models and their annotations.
+
+\subsubsection{Validators}\label{validators}
+
+The existence of an explicit data model representation language and of a
+precise, unambiguous mapping specification enables the creation of
+universal validators, just as it happens for XML and XSD: the validator
+may parse the data model descriptions imported by the VOTable and check
+that the file represents valid instances of one or more data models.
+
+\subsubsection{VO Publishing Helper}\label{vo-publishing-helper}
+
+There is some complexity involved in understanding how to publish data
+in the Virtual Observatory. The availability of a standard for
+serializing data model instances can provide tools for publishers to
+build templates of their responses.
+
+Such application may help data providers in interactively mapping Data
+Models elements to their files or DB tables, either producing a VOTable
+template with the appropriate annotations, or by creating a DAL service
+on the fly.
+
+The application is not required to be model-aware, since it may get all
+the information from the standardized description files and the mapping
+specification.
+
+\subsubsection{VO Importer}\label{vo-importer}
+
+Users and Data Providers may have non-compliant files that they want to
+convert to a VO-compliant format according to some data models: a
+generic, model-unaware importer application may allow them to do so for
+any standard data model with a proper description file.
+
+\subsection{Generic Use Cases}\label{generic-use-cases}
+
+This section generalizes the previous one by stating the same use cases
+in a more abstract, generic formulation. It also adds some more generic
+use cases that this specification addresses or enables.
+
+\subsubsection{Serialize and de-serialize instances according to a data
+model}\label{serialize-and-de-serialize-instances-according-to-a-data-model}
+
+Data providers may want to serialize data and metadata in VOTable
+according to a specific data model with a standardized description.
+
+A client may build an in-memory faithful representation of that instance
+according to the data provider's annotations, assuming the knowledge of
+a finite set of data model identifiers, of a full data model, or by
+parsing standard VO-DML data model specifications.
+
+\subsubsection{Annotate files according to multiple
+models}\label{annotate-files-according-to-multiple-models}
+
+Data providers may find it useful to annotate a file according to
+different data models for different classes of data consumers. Also,
+they may decide to provide annotations according to different versions
+of a specific data model, to favor backward compatibility with older
+clients.
+
+\subsubsection{Representing cross matches and linking files
+together}\label{representing-cross-matches-and-linking-files-together}
+
+It is often the case that two or more files or tables represent
+different pieces of information regarding the same astronomical sources
+of objects. In these cases, one or more columns usually are used as keys
+to identify instances in such tables.
+
+For instance, the output of a cross-matching service may provide the IDs
+of the cross matched sources along with some data regarding the
+cross-matching process, while most of the data about the sources
+themselves may be stored in different tables.
+
+This is a very common relational pattern. A standardized annotation with
+Object-Relational Mapping capabilities may be used to connect different
+tables and provide users with a unified view according to data models
+the user is familiar with.
+
+It is then possible to link different views of the datasets, with an
+additional layer of semantics. For instance, an application may display
+the image of a region of the sky, and a catalogue may contain
+information about sources in the catalogue.
+
+A user may want to link the image to the catalogue. When no a-priori
+link between the image coordinates and the positions in the catalogue is
+known, users need to set such links themselves, by selecting the
+relevant columns. With standardized annotations according to specific
+data models applications can figure out the links themselves, and ask
+the user to intervene only when there is ambiguity or lack of
+information, or when the user wants to make a custom link.
+
+Similarly, one may produce a color-color diagram from magnitudes stored
+in different tables as long as there is a known mapping from source
+identifiers among tables, and a standardized annotation of all the
+tables involved.
+
+\subsubsection{Mission-specific data model
+extensions}\label{mission-specific-data-model-extensions}
+
+One may identify data and metadata features that are common to a certain
+astronomical domain, e.g.~catalogues of astronomical sources. These are
+the models the IVOA sanctions in standards.
+
+However, different missions, or archives, or applications will most
+certainly have specific additional features that are not captured by
+such common, standardized data models.
+
+One may express such extensions and their instances in such a way that:
+* data providers may easily annotate specialized instances, including
+the additional information, in a standardized, interoperable fashion. *
+clients of the common, standard data models may still find instances of
+these parent models in files serializing specialized instanced. * a
+model annotation that is valid according to a specialized data model is
+also valid according to the parent model.
+
+This use case can be formalized in terms of inheritance and
+polymorphism.
+
+Inheritance allows models to specialize types defined in other data
+models. Polymorphism is the common object-oriented design concept that
+says that the value of a property may be an instance of a \emph{subtype}
+of the declared type.
+
+Typed languages such as Java support a casting operation, which provides
+more information to the interpreter about the type it may expect a
+certain instance to be.
+
+A client must be able to identify the information about a standard type,
+even if the serialization includes instances of its subtypes. Similarly,
+a client should have enough information to \emph{cast} an instance from
+the declared type to the actual subtype.
+
+\subsection{Growing complexity: simple, advanced, and guru
+clients}\label{sec:clients}
+
+According to the use cases depicted above, we can classify clients in
+terms of how they parse the VOTable in order to harvest its content. Of
+course, in the real word such distinction is somewhat fuzzy, but this
+section tries and describe the different levels of usage of this
+specification.
+
+This classification is useful because it shows how implementations can
+be based on different assumptions. Some clients can focus on few
+hard-coded elements, while other clients can dynamically address complex
+tasks.
+
+\subsubsection{Simple clients}\label{simple-clients}
+
+We say that a client is \emph{simple} if:
+
+\begin{itemize}
+\item
+  it does not parse the VO-DML description file
+\item
+  it assumes the a priori knowledge of one or more data models
+\item
+  it discovers information by looking for a set of predefined vodml-refs
+  in the VOTable
+\end{itemize}
+
+In other terms, a simple client has knowledge of the data model it is
+sensitive to, and simply discovers information useful to its own use
+cases by traversing the \texttt{VODML} element.
+
+Examples of such clients are the DAL service clients that allow users to
+discover and fetch datasets. They may just inspect the response of a
+service and present the user with a subset of its metadata. They do not
+\emph{reason} on the content, and they are not interested in the
+structure of the serialized objects.
+
+If such clients allow users to download the files that they load into
+memory, they should make sure to preserve the structure of the metadata,
+so to be interoperable with other applications that might ingest the
+same file at a later stage.
+
+\subsubsection{Advanced clients}\label{advanced-clients}
+
+We say that a client is \emph{advanced} if:
+
+\begin{itemize}
+\item
+  it does not parse the VO-DML description file
+\item
+  it is interested in the structure of the serialized instances
+\item
+  can parse the elements defined in this specification
+\end{itemize}
+
+Examples of such clients are discovery portals or science applications
+that display information to the user in a structured way, e.g.~by
+plotting it, or by displaying its metadata in a user-friendly format.
+Possibly, such applications may allow users to save versions of the
+serialization after it has been manipulated.
+
+Such clients may not assume any knowledge of any specific data models.
+In some cases they may assume knowledge of some types from some basic,
+common data models, to perform additional tasks.
+
+Even if such applications may be model-unaware, they may allow users to
+build Boolean filters on a table, using a user-friendly tree
+representing the whole metadata. This exposes all the metadata provided
+by the Data Provider in a way that may not be meaningful for the
+application, but that may be meaningful for the user.
+
+\subsubsection{Guru clients}\label{guru-clients}
+
+We say that a client falls into this category if:
+
+\begin{itemize}
+\item
+  it parses the VO-DML descriptions
+\item
+  it does not assume any a priori knowledge of any data models.
+\end{itemize}
+
+Such applications can, for example, dynamically allow users and data
+providers to map their files or databases to the IVOA data models in
+order to make them compliant, or display the content of any file
+annotated according to this standard.
+
+This specification allows the creation of universal validators
+equivalent to the XML/XSD ones.
+
+It also allows the creation of VO-enabled frameworks and reusable
+libraries. For instance, a Python universal I/O library can parse any
+VOTable according to the data models it uses, and dynamically build
+structured objects on the fly, so that users can directly interact with
+those objects or use them in their scripts or in science applications,
+and then save the results in a VO-compliant format.
+
+Java and Python guru clients could automatically generate interfaces for
+representing data models and dynamically implement those interfaces at
+runtime, maybe building different views of the same file in different
+contexts.
+
+Notice that guru frameworks and libraries can be used to build advanced
+or even simple applications in a user-friendly way, abstracting the
+developers from the technical details of the standards and using
+scientific concepts as first class citizens instead.
+
+\subsection{Formats other than VOTable}\label{sec:other-formats}
+
+We want to explicitly note that this specification covers the VOTable
+format only.
+
+Other mapping specifications can and will provide standardized
+strategies for mapping Data Models to formats other than VOTable.
+
+Part of the implementation efforts related to the present specification
+was to validate the standard against prototype serializations in JSON
+and YAML formats.
+
+Mapping specifications targeting additional formats can use this
+document as a template.
+
+\section{The need for a mapping
+language}\label{the-need-for-a-mapping-language}
+
+When encountering a data container, i.e.~a file or database containing
+data, one may wish to interpret its contents according to some external,
+predefined data model. That is, one may want to try to identify and
+extract instances of the data model from amongst the information. For
+example in the \emph{global as view} approach to information
+integration, one identifies elements (e.g.~tables) defined in a global
+schema with views defined on the distributed databases\footnote{See, for
+  example,
+  http://logic.stanford.edu/dataintegration/chapters/chap01.html}.
+
+If one is told that the data container is structured according to some
+standard serialization format of the data model, one is done. I.e. if
+the local database is an exact \emph{implementation} of the global
+schema, one needs no special annotation mechanism to identify these
+instances. An example of this is an XML document conforming to an XML
+schema that is an exact physical \emph{representation} of the data
+model. We call such representations \emph{faithful}.
+
+But in an information integration project like the IVOA, which aims to
+homogenize access to many distributed heterogeneous data sets, databases
+and documents are in general \emph{not} structured according to a
+standard representation of some predefined, global data model. The best
+one may hope for is to obtain an \emph{interpretation} of the data set,
+defining it as a \emph{custom serialization} of the result of a
+\emph{transformation} of the global data model\footnote{Or alternatively
+  as a transformation of a (standard) serialization of the data model.}.
+For example, even if databases themselves are exact replications of a
+global data model, results of general queries will be such custom
+serializations.
+
+To interpret such a custom serialization one generally needs extra
+information that can provide a \emph{mapping} of the serialization to
+the original model. If the serialization \emph{format} is known, this
+mapping may be given in phrases containing elements both from the
+serialization format and the data model. For example if our
+serialization contains data stored in `rows' in one or more `tables'
+that each have a unique `name' and contain `columns' also with a `name',
+you might be able to say things like:
+
+\begin{itemize}
+\item
+  The rows in this table named SOURCE contain \emph{instances} of
+  \emph{object type} `Source' as defined in \emph{data model}
+  `SourceDM'.
+\item
+  The \emph{type}'s `name' \emph{attribute} (having \emph{datatype}
+  `string', a \emph{primitive type}) also acts as the \emph{identifier}
+  of the Source \emph{instances} and is stored in the single column with
+  ID `name'.
+\item
+  The \emph{type's} `classification' \emph{attribute} is stored in the
+  table column CLASSIFICATION (from the \emph{data model} we know its
+  \emph{datatype} is an \emph{enumeration} with certain \emph{values},
+  e.g. `star', `galaxy', `agn').
+\item
+  The \emph{type's} `position' \emph{attribute} (being of
+  \emph{structured data type} `SkyCoordinate' defined in \emph{model}
+  `SourceDM') is stored over the two columns RA and DEC, where RA stores
+  the SkyCoordinate's \emph{attribute} `longitude', DEC stores the
+  `latitude` \emph{attribute}. Both must be interpreted using an
+  \emph{instance} of the SkyCoordinateSystem \emph{type}, This
+  \emph{instance} is stored in 1) another document elsewhere, referenced
+  by a \emph{reference} to a URI, or 2) in this document, by means of an
+  \emph{identifier.}
+\item
+  \emph{Instances} from the \emph{collection} of luminosities of the
+  Source \emph{instances} are stored in the same row as the source
+  itself. Columns MAG\_U and ERR\_U give the `magnitude' and `error'
+  \emph{attributes} of \emph{type} LuminosityMeasurement in the ``u
+  band'', an \emph{instance} of the Filter \emph{type}. (stored
+  elsewhere in this document (`a \emph{reference} to this Filter
+  instance is \ldots{}'). Columns MAG\_G and ERR\_G \ldots{} etc.
+\item
+  Luminosity \emph{instances} also have a filter \emph{relation} that
+  points to instances of the PhotometryFilter \emph{structured data
+  type}, defined in the IVOA PhotDM model, whose \emph{package} is
+  imported by the SourceDM.
+\end{itemize}
+
+In this example the \emph{emphasized} words refer to concepts defined in
+VO-DML, a meta-model that is used as a formal language for expressing
+data models. The use of such a modeling language lies in the fact that
+it provides formal, simple, and implementation neutral definitions of
+the possible structure, the `type' and `role' of the elements from the
+actual data models that one may encounter in the serialization
+(SourceDM). This can be used to constrain or validate the serialization,
+but more importantly it allows us to formulate mapping rules between the
+serialization format (itself a kind of meta-model) and the meta-model,
+independent of the particular data models used; for example rules like:
+
+\begin{itemize}
+\item
+  An \emph{object type} MUST be stored in an `INSTANCE'.
+\item
+  A `\emph{primitive type}' MUST be stored in a `COLUMN'.
+\item
+  A \emph{reference} MUST identify an \emph{object type} \emph{instance}
+  represented elsewhere, possibly in another `table', possibly in the
+  same table, possibly in another document.
+\item
+  An \emph{attribute} SHOULD be stored in the same table as its
+  containing \emph{object type}.
+\item
+  etc
+\end{itemize}
+
+Clearly free-form English sentences as the ones in the example are not
+what we are after. If we want to be able to identify how a data model is
+represented in some custom serialization we need a formal, computer
+readable mapping language.
+
+One part of the mapping language should be anchored in a formally
+defined serialization language. After all, for some tool to interpret a
+serialization, it MUST understand its format. A completely freeform
+serialization is not under consideration here. This document assumes the
+target meta-model is VOTable.
+
+The mapping language must support the interpretation of elements from
+the serialization language in terms of elements from the data model. If
+we want to define a generic mapping mechanism, one by which we can
+describe how a general data model is serialized inside a VOTable, it is
+necessary to use a general data model \emph{language} as the target for
+the mapping, such as the one described above. This language can give
+formal and more explicit meaning to data modeling concepts, possibly
+independent of specific languages representation languages such as XML
+schema, Java, or the relational model.
+
+This document uses VO-DML as the target language.
+
+The final ingredient in the mapping language is a mechanism that ties
+the components from the two different meta-models together into
+\emph{sentences}. This generally requires some kind of explicit
+annotation, some meta-data elements that provide an identification of
+source to target structure. This document uses an extension to VOTable
+with a VODML element which can provide this link in a rather simple
+manner.
+
+This solution is sufficient and it is in some sense the simplest and
+most explicit approach for annotating a VOTable. It may \emph{not} be
+the most natural or suitable approach for other meta-models such as FITS
+or TAP\_SCHEMA. We discuss this at the end of this document.
+
+\section{Mapping with the \texttt{VODML}
+element.}\label{mapping-with-the-vodml-element.}
+
+This section summarizes the technical basis of this reccomendation.
+
+The present specification, in conjunction with with VO-DML
+recommendation \cite{2018ivoa.spec.0910L} provides a formal mechanism for using such
+data model identifiers, although different from the original
+\texttt{@utype} attribute definition and its usages \cite{note:utypeusage}.
+
+VOTable 1.2 introduced the \texttt{@utype} attribute, which was intended
+to represent ``pointers into a data model''. A precise and formal
+definition on how this \emph{pointing} was to be achieved and a
+description of its meaning was missing though.
+
+First, a formal definition of the target of the pointers was missing. To
+solve this, data models were usually accompanied by a list of
+\emph{utypes} (\textbf{TODO} TBD refer to STC, Characterization,
+Spectrum?), and these could be used as values for said
+\texttt{@utype}, be it in VOTable or for example in the Table Access
+Protocol metadata. These were not linked in any formal, machine readable
+way to the underlying data model.
+
+Basically it means that the data model is represented solely by a list
+of attributes, which does not do justice to the complexity of data
+models describing complex data products like Data Cubes or the
+provenance of Simulations. These contain complex object hierarchies
+organized in graphs with various types of relations between individual
+objects. It also proved difficult to express the relationship among
+different, but overlapping, data models, with much discussion centred on
+the question how to reuse utypes from one model in the definition of
+another.
+
+The approach is basically not much more than another vocabulary, similar
+to UCDs \cite{2018ivoa.spec.0527M}, or SKOS vocabularies \cite{2009ivoa.spec.1007G}, obtained by
+different means. Efforts were made to provide some structure to these
+values that might provide some hints of their location in a model, but
+there was no formal mechanism on how to derive that structure and it was
+unclear whether it could truly represent the richness of the existing
+and future data models. In particular there was no standard defined how
+this could be achieved and no common usage patterns were discovered
+\cite{note:utypeusage}.
+
+VO-DML provides a formal target for these pointers in the data model
+itself and formally defines how models can be reused in the definition
+of other, dependent models. Precisely \emph{how} to use these pointers
+in a VOTable to provide a complete annotation useful for
+interoperability requires more work though.
+
+The current specification provides such a definition. It shows how data
+publishers can identify also the more complex data model elements such
+as structured types and relationships inside some published data source,
+be it a VOTable or relational database published through the TAP
+protocol.
+
+This specification defines various \emph{mapping patterns} from VOTable
+to VO-DML. Such a pattern identifies a VOTable element with a VO-DML
+element. The VO-DML element is said to be \emph{represented} by the
+VOTable element. The mapping pattern indicates that instances of
+identified VO-DML types are present in the VOTable. These may be atomic
+\emph{values} (instances of VO-DML ValueTypes \cite{2018ivoa.spec.0910L}) or
+represented by cells in a table column identified by a \texttt{FIELD}.
+Alternatively they may be instances of structured types.
+
+The extension to the VOTable schema is reproduced in \ref{sec:schema}.
+
+\subsection{VODMLReference}\label{sec:vodmlref}
+
+This XML type represents a reference to a single element in a VO-DML/XML
+document. It takes over the role of the \texttt{@utype} attribute in this
+regards. Whenever we wish to refer to instances of the VODMLReference
+type we will call them \textbf{vodmlref}-s. A vodmlref is a string with
+the following syntax:
+
+\begin{verbatim}
+vodmlref ::= prefix ':' vodml-id
+\end{verbatim}
+
+The prefix identifies the model in which the element identified by the
+suffix is defined.
+
+\textbf{vodml-ids} are always considered opaque, meaning that clients
+have no reason to parse them. They are identifiers mapping VOTable
+elements to VO-DML elements in the identified data model. Thus, they
+must follow the same syntax rules defined in the VO-DML/Schema document.
+
+Prefixes MUST be exactly the same as the \textbf{name} attribute of the
+model in the VO-DML/XML document that defines it. They are sequences of
+$[A-Za-z0-9\_-]$, and they are case sensitive.
+
+For new models, that are not (yet) standardized or for custom data
+models used in a smaller community, it is recommended to form DM
+prefixes as
+\texttt{\textless{}author-acronym\textgreater{}\_\textless{}dm-name\textgreater{}},
+where the \texttt{\textless{}dm-name\textgreater{}} is the name of a
+standard data model; thus, NED's derivation of spec could have
+\texttt{ned\_spec} as a prefix, CDS's derivation \texttt{cds\_spec}.
+
+Prefixes correspond to major versions for the corresponding data models.
+Thus, \textbf{vodmlrefs} remain constant over ``compatible'' changes in
+the sense of \cite{2018ivoa.spec.0910L}.~In consequence, clients must assume a
+compatible extension when encountering an unknown \textbf{vodmlref} with
+a known prefix (and should in general not fail).
+
+Another consequence of this rule is that there may be several VO-DML
+URLs for a given prefix. ~To identify a data model, use the prefix, not
+the VO-DML URL, which is intended for retrieval of the data model
+definition exclusively. ~In case a client requires the exact minor
+version of the data model, it must inspect the models declarations as
+described in \ref{sec:normative}.
+
+(\textbf{TODO} OL: This doesn't feel right. I believe minor versions
+should be uniquely identified by a URI and without having to parse the
+descriptor, especially since we have started talking about registering
+models in the Registry.)
+
+\paragraph{How to look for a vodmlref in a
+document}\label{how-to-look-for-a-vodmlref-in-a-document}
+
+(\textbf{TODO} to fill out once the syntax has settled)
+
+\section{General information about this spec}\label{sec:info}
+
+\subsection{Sample model and
+instances}\label{sample-model-and-instances}
+
+(\textbf{TODO} This needs to be filled with the designated sample model)
+
+\subsection{Single-table representations and Object-Relational
+Mapping}\label{single-table-representations-and-object-relational-mapping}
+
+Broadly speaking, this specification is all about Object-Relational
+Mapping (ORM). Data Models are represented in VO-DML according to an
+Entity-Relationship paradigm, in a fashion that is implementable by
+relational databases, object oriented languages, and possibly by certain
+document oriented data bases as well.
+
+As VOTable can represent several tables in the same file with rich
+metadata, one can look at VOTable as a data base that can store
+instances of complex relational models.
+
+Such models are usually defined in terms of entities, with each table
+representing each entity, and relationships that can be expressed as
+tables themselves or as constraints on the values in the tables, and
+most often with a combination of tables and constraints. For instance, a
+Many-To-Many relationship between two Entities is usually represented in
+the relational model as a table holding IDs of instances from the tables
+representing the Entities, with Foreign Keys constraints.
+
+Astronomers mainly work with single tables that hold flattened
+representations of relatively simple models, although in some cases
+complex data models are serialized in several tables inside the same
+file.
+
+This specification covers both requirements. Serializations of simple
+models in a flattened table are easier to achieve than complex ORM
+mappings where information is normalized into different tables, but they
+are both achievable in VOTable. Moreover, the hybrid case of partly
+de-normalized representations, where the model is only partly
+normalized, is more challenging but should also be addressable in terms
+of this specification.
+
+In any case, the examples in \ref{sec:normative} are focused on the
+single-table, flattened representations of instances according to some
+data model. Some of the patterns described in these sections are also
+applicable to simple ORM cases. Especially the sections dealing with
+mapping reference and composition relations also deal with the more
+complex cases of proper ORM mappings, where data is partly or completely
+normalized into different tables.
+
+The simple and complex ORM patterns described by this specification
+usually belong to very different concrete use cases, so it should be
+acceptable in a broad range of cases that implementers, both on the
+server and on the client side, focus on the single-table mappings. Data
+providers requiring more complex patterns, more advanced applications,
+or applications built on top of standard software libraries that
+implement this specification as a whole will need to take advantage of
+the ORM mapping patterns.
+
+\section{Patterns for annotating VOTable}\label{sec:normative}
+
+In this section we list all legal mapping patterns that can be used to
+express how instances of VO-DML-defined types are represented in a
+VOTable and the possible roles they play. It defines the VOTable
+annotation syntax, what restrictions there are, and how to interpret the
+annotation semantically.
+
+The organization of the following sections is based on the XML types
+introduced in the new VOTable schema. The entire VO-DML annotation is
+included in a new \texttt{VODML} element and its descendents. The
+following sections introduce each element and how it is used to map the
+VO-DML concepts to VOTable documents.
+
+In particular, \ref{sec:norm-vodml};\ref{sec:norm-relations} describe the
+schema elements that provide data model annotations, while
+\ref{sec:norm-types} inverts this approach and shows how to map VO-DML
+concepts to the VOTable elements that have been introduced.
+
+Some comments on how we refer to VOTable and VO-DML elements:
+
+\begin{itemize}
+\item
+  When referring to VOTable elements we will use the notation by which
+  these elements will occur in VOTable documents, i.e.~in general ``all
+  caps'', E.g. \texttt{GROUP}, \texttt{FIELD}, (though
+  \texttt{FIELDref}).
+\item
+  When referring to an XML attribute on a VOTable element we will prefix
+  it with a `@', e.g. \texttt{@id}, \texttt{@ref}.
+\item
+  References to VO-DML elements will be CamelCase and in
+  \textbf{\texttt{bold face}}, using their VO-DML/XSD type definitions.
+  E.g. \textbf{\texttt{ObjectType}}, \textbf{\texttt{Attribute}}.
+\end{itemize}
+
+The following list defines some shorthand phrases (\emph{italicized}),
+which we use in the descriptions below:
+
+\begin{itemize}
+\item
+  Generally when using the phrase \emph{meta-type} we mean a ``kind of''
+  type as defined in VO-DML. These are \textbf{\texttt{PrimitiveType}},
+  \textbf{\texttt{Enumeration}}, \textbf{\texttt{DataType}} and
+  \textbf{\texttt{ObjectType}}.
+\item
+  With \emph{atomic type} we will mean a \textbf{\texttt{PrimitiveType}}
+  or an \textbf{\texttt{Enumeration}} as defined in VO-DML.
+\item
+  A \emph{structured type} will refer to an \textbf{\texttt{ObjectType}}
+  or \textbf{\texttt{DataType}} as defined in VO-DML.
+\item
+  With a property \emph{available on} or \emph{defined on} a
+  (structured) type we will mean an \textbf{\texttt{Attribute}} or
+  \textbf{\texttt{Reference}}, or (in the case of
+  \textbf{\texttt{ObjectType}}s) a \textbf{\texttt{Composition}} defined
+  on that type itself, or inherited from one of its base class
+  ancestors.
+\item
+  A VO-DML \textbf{\texttt{Type}} \emph{plays a role} in the definition
+  of another (structured) type if the former is the declared data type
+  of a property available on the latter.
+\item
+  When writing that a VOTable element \emph{represents} a certain VO-DML
+  type, we mean that the VOTable element is mapped either directly to
+  the type, or that it identifies a role played by the type in another
+  type's definition.
+\item
+  A \emph{descendant} of a VOTable element is an element contained in
+  that element, or in a descendant of that element. This is a standard
+  recursive definition and can go up the hierarchy as well: an
+  \emph{ancestor} of an element is the direct container of that element,
+  or an ancestor of that container.
+\end{itemize}
+
+When we say this section is NORMATIVE we mean that:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  when a client finds an annotation pattern conforming to one defined
+  here, that client is justified in interpreting it as described in the
+  comments for that pattern. It is an ANNOTATION ERROR if that were to
+  lead to inconsistencies\footnote{E.g. when interpreting an
+    \texttt{\textless{}INSTANCE\textgreater{}} as a certain
+    \textbf{\texttt{ObjectType}}, if one of its children is not
+    annotated or identifies a child element that is not available on the
+    type, this is an error. For each pattern there is a set of rules
+    that, if broken, are annotation errors. (\textbf{TODO} we better
+    strive to make these comprehensive. OL thinks this is too strict of
+    a default rule. We should probably be more lenient by default and
+    add strictness where required. A lot is already mandated by the new
+    schema.)}.
+\item
+  when a client encounters a pattern not in this list, the client SHOULD
+  ignore it. Interpreting it as a mapping to a data model MAY work, but
+  is not mandated and other clients need not conform to this.
+\end{enumerate}
+
+\subsection{The \texttt{VODML} element}\label{sec:norm-vodml}
+
+This specification introduces a new \texttt{VODML} element to
+\texttt{VOTABLE}.
+
+The element is a direct child of \texttt{VOTABLE} and only one
+\texttt{VODML} element is allowed in each file. This element contains
+all the data model annotations for the entire file \footnote{Earlier
+  versions of this specification had the \texttt{VODML} element defined
+  as a potential child of several existing elements, including
+  \texttt{RESOURCE} and \texttt{TABLE}. While this achieved a form of
+  locality by bringing the annotations close to the elements it was
+  annotating, it introduced two different, valid ways of annotating
+  files. Also, the locality it achieved was completely lost in the more
+  complex cases with multiple \texttt{TABLE} elements, where this kind
+  of locality matters the most. A single instance of \texttt{VODML} is
+  much simpler to implement for data providers and consumers alike, and
+  it provides only one obvious way of annotating a file. On the other
+  hand, the single \texttt{VODML} element might pose challenges to
+  providers streaming VOTable instances without a knowledge of the
+  semantics of the contents upfront. This case seems more like a
+  theoretical possibility than an actual implementation at this point,
+  so it was ignored. It could always be possible to add the
+  \texttt{VODML} element as a child of other elements in future versions
+  of this specification, keeping into account actual requirements from
+  actual implementations rather than just a theoretical possibility.}.
+
+There are three sections making up the contents of the \texttt{VODML}
+annotation:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  model declarations (\texttt{MODEL} elements)
+\item
+  global instances (\texttt{GLOBALS} elements)
+\item
+  tabular instance templates (\texttt{TEMPLATES}).
+\end{itemize}
+
+The model declarations introduce the models used in the annotation.
+Global instances are direct instances, i.e.~instances whose values are
+completely determined by the annotation, as opposed to instance
+templates, which annotates multiple instances that have some of their
+values represented in tabular format inside the annotated file, as
+described in more detiail in the following sections.
+
+\subsubsection{Example}\label{example}
+
+The example in Listing~\ref{lst:simple} uses sample models that are simple
+enough to be useful for exploring the mapping patterns, but also
+complete as they exercise the entirety of the mapping schema. These
+models are not IVOA standard models themselves, but were defined for
+illustrating the mapping specification only.
+
+\subsubsection{Models Declaration: \texttt{MODEL}}\label{sec:norm-model}
+
+A VOTable can provide serializations for an arbitrary number of data
+model types. In order to declare which models are represented in the
+file, data providers \textbf{must} declare them through the
+\texttt{MODEL} elements.
+
+Only models that are used in the file must be declared. A model is used
+if at least one element in the file has a \texttt{vodml-ref} with the
+model's prefix/name. In other terms, only models that define
+\texttt{vodml-ids} used in the annotation (see \ref{sec:vodmlref}) must
+be declared.
+
+A \texttt{MODEL} is uniquely and globally identified by its
+\texttt{NAME}, which refers to the latest available minor version of a
+specific model. According to the VO-DML specification \cite{2018ivoa.spec.0910L}, all
+minor versions of a model are compatible with each other, and major
+versions have different names (e.g. \texttt{stc} vs \texttt{stc2}).
+
+Clients should not be sensible to the specific minor version of a model
+and can simply ignore \texttt{vodml-ref}s they are not familiar with.
+
+The \texttt{NAME} is also the prefix of the \texttt{vodml-ref}s pointing
+to elements of a specific model.
+
+For clients that need to parse the model descriptions, i.e.~the
+VODML/XML file of a model, data providers \textbf{must} include the URL
+of the VODML/XML document in the \texttt{MODEL/URL} element. if the
+model is defined in an IVOA recommendation, then this URL \textbf{must}
+be persistent, and the same URL that is registered for that model in the
+IVOA registries. If the model is a custom extensions, it \textbf{should}
+also be registered in IVOA registries. However, since this is not a
+requirement, for custom extensions that are not registered data
+providers \textbf{must} still provide the URL of the VODML/XML
+description file, and care should be taken into ensuring that the URL is
+persistent, otherwise clients will not be able to read the model
+definition. For more information on registering and identifying data
+models, please refer to the VO-DML specification (\cite{2018ivoa.spec.0910L})
+
+Note that because of the above procurements, clients are not required to
+resolve the \texttt{NAME} of the model to its VODML/XML document, but
+can, if necessary, rely on the \texttt{URL} element.
+
+In Listing~\ref{lst:simple} three models are declared, with the names
+\texttt{ivoa}, \texttt{filter}, and \texttt{sample}, which are the
+prefixes used in all the \texttt{vodml-refs} in the file.
+
+\subsubsection{Instance Annotation: \texttt{INSTANCE}}\label{sec:norm-instance}
+
+VO-DML structured types are annotated by using the new \texttt{INSTANCE}
+XML element. Note that there is no difference, from a schema point of
+view, between \texttt{**ObjectType**}s and \texttt{**DataType**}s.
+However, some restrictions apply and are enforced through schematron
+rules. More details are provided in
+\ref{sec:norm-object};\ref{sec:norm-data}.
+
+Instances \textbf{must} have a \emph{type} (\texttt{@dmtype} attribute). Note
+that instances are not annotated with a role, as roles are mapped to
+specific XML elements (see \ref{sec:norm-relations}). This is
+compatible with the intuitive fact that the same instance can have
+different roles in relationships with other instances.
+
+Instances \textbf{may} be provided with an \texttt{@ID} value which
+allows other objects to refer to the instance itself (see
+\ref{sec:norm-idref}).
+
+Instances usually have a number of \emph{roles}, which can be themselves
+instances through a composition relationship
+\ref{sec:norm-composition}), references to other instances
+\ref{sec:norm-reference}), or attributes (\ref{sec:norm-attribute}).
+
+As explained in more detail in \ref{sec:norm-composition} and related
+sections, a composition relationship is annotated so that parents
+contain or refer to children instances and children point to their
+parent instances through the \texttt{CONTAINER} element
+(\ref{sec:norm-container}).
+
+\subsubsection{Global Instances:
+\texttt{GLOBALS}}\label{sec:norm-globals}
+
+Some annotations may map the VOTable contents to instances of data model
+types that are global in the file, possibly because such instances are
+referenced by other intances that annotate specific tables. More
+generally, some annotations will define instances that are completely
+defined in terms of constant value, i.e.~they are not represented in
+tabular form. Rather, they are completely and directly represented by an
+\texttt{XML} element.
+
+Such instances should be included in the \texttt{GLOBALS} element.
+
+An annotation can have multiple \texttt{GLOBALS} sections so to group
+together global instances that are related to each other.
+
+In particular, \texttt{GLOBALS} sections can be identifier by an
+\texttt{@ID} attribute. This is particularly useful when referencing
+global instances from table elements, see for instance
+\ref{sec:norm-reference-foreignkey}.
+
+\texttt{GLOBALS} \textbf{must} only contain direct representations of
+instances, i.e. \texttt{INSTANCE} elements that do not have any
+\texttt{COLUMN} elements directly or in any of their descendants. This
+rule is not enforces via the XSD schema but by schematron rules.
+
+Also, \texttt{GLOBALS} \textbf{should not} contain any
+\texttt{INSTANCE}s with \texttt{REFERENCE}s to indirect
+\texttt{INSTANCE}s, unless the model allows for multiple references with
+the same role, which is however deprecated by the \texttt{VO-DML}
+specification.
+
+As an example, Listing~\ref{lst:simple} contains one \texttt{GLOBALS} section
+with one instance representing a coordinate frame in the rather
+simplistic \emph{sample} model. The coordinate frame instance is
+completely determined by the global \texttt{INSTANCE}.
+
+\subsubsection{Tabular Instances:
+\texttt{TEMPLATES}}\label{sec:norm-templates}
+
+Most data in VOTable is expressed in tabular form, each row representing
+one individual instance. When this is the case, instances need to be
+represented through \emph{templates} in the \texttt{TEMPLATES} section
+of the annotation. An \texttt{INSTANCE} in a template is identical to
+\texttt{INSTANCE}s in the \texttt{GLOBALS} section, but they are also
+allowed to contain \texttt{COLUMN} elements (see
+\ref{sec:norm-column}), which are references to regular VOTable
+\texttt{FIELD}s. Rather than being directly and completely represented
+by its \texttt{INSTANCE} annotation, instances are thus materialized for
+each row in a table, according to their annotation. Note that a
+\texttt{COLUMN} may be present either directly in an \texttt{INSTANCE}
+or in any of its descendent \texttt{INSTANCE}s.
+
+\texttt{TEMPLATES} \textbf{must} refer to a \texttt{TABLE} through the
+\texttt{tableref} attribute. \texttt{COLUMN} elements inside a template
+\texttt{INSTANCE} \textbf{must} be references to \texttt{FIELD}s in the
+\texttt{TABLE} identified by \texttt{tableref}.
+
+In Listing~\ref{lst:simple} table \texttt{\_table1} contains simple
+astronomical sources with columns for the sources names, Right
+Ascension, and Declination in the ICRS reference frame. Thus, the
+sources are annotated using an \texttt{INSTANCE} element inside the
+\texttt{TEMPLATES} section of the \texttt{VODML} element. The instance
+and its attributes refer to the three columns in the table and map their
+contents to the attributes of sources and positions defined in the
+respective data model.
+
+\subsubsection{Direct vs Indirect
+Instances}\label{direct-vs-indirect-instances}
+
+As an illustration of the difference between direct and indirect
+instances, consider the following VOTable:
+
+This is a representation of the very same instances as in
+Listing~\ref{lst:simple}. However, while Listing~\ref{lst:simple} uses template
+instances in \texttt{TEMPLATES} and a \texttt{TABLE} element to
+represent the values of the sources, \ref{lst:direct_sources} uses
+direct representations for all three sources in the example.
+
+Generally speaking, this specification is used to annotate data products
+according to one or more data models. In this sense, the choice on
+whether to use direct or indirect representations is driven by the data
+being produced. In principle, for each indirect representation there is
+an equivalent indirect representation where template instances and one
+or more tables are turned into a number of explicit, direct instances.
+
+\subsubsection{Schema Constraints}\label{schema-constraints}
+
+In order to be valid, the \texttt{VODML} \textbf{must} contain at least
+one \texttt{MODEL} instance and at least one of either \texttt{GLOBALS}
+or \texttt{TEMPLATES}, which in turn \textbf{must} contain at least one
+\texttt{INSTANCE}.
+
+\subsection{Relations}\label{sec:norm-relations}
+
+All instances have a type, and some instances also play a \emph{role} in
+another instance. For example, if a \textbf{Source} has a
+\textbf{position} of type \textbf{Coordinate}, then an instance of type
+\textbf{Coordinate} will also have the role of \textbf{position} in the
+enclosing \textbf{Source} instance.
+
+The role corresponds to a relationship between two types.
+
+The following roles are mapped from VO-DML to VOTable:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Attributes (\ref{sec:norm-attribute}).
+\item
+  Compositions (\ref{sec:norm-composition}).
+\item
+  References (\ref{sec:norm-reference}).
+\end{itemize}
+
+\subsubsection{Attributes: \texttt{ATTRIBUTE}}\label{sec:norm-attribute}
+
+An attribute may be represented by another instance
+(\ref{sec:norm-instance}), by a primitive or enumerated value
+(\ref{sec:norm-literal};\ref{sec:norm-constant}), or by a column
+(\ref{sec:norm-column}) if the parent instance is a template, i.e.~an
+indirect representation.
+
+An \texttt{ATTRIBUTE} \textbf{must} have a \texttt{@dmrole} attribute
+indicating the role of the attribute, and such \texttt{@dmrole}
+\textbf{must} be a valid vodml-ref as defined in one of the VO-DML
+models declared in the models section (\ref{sec:norm-model}). The
+vodml-ref \textbf{must} also identify a VO-DML Attribute.
+
+\subsubsection{Attributes: \texttt{LITERAL}}\label{sec:norm-literal}
+
+A \texttt{LITERAL} \textbf{must} represent an attribute with a primitive
+or enumerated type. It \textbf{must} have a \texttt{@value} attribute
+and optionally a \texttt{@unit}. It \textbf{must} also have a
+\texttt{@dmrole} attribute, whose value \textbf{must} be a valid
+vodml-ref defined in one of the declared models (\ref{sec:norm-model})
+and identify a VO-DML role with a primitive type.
+
+\subsubsection{Attributes: \texttt{CONSTANT}}\label{sec:norm-constant}
+
+A \texttt{CONSTANT} is a reference to a VOTable \texttt{PARAM}. This
+element can be used in place of a \texttt{LITERAL} to point to an
+existing \texttt{PARAM} in the same VOTable, avoiding duplicated values.
+
+Note that the target of the reference \textbf{must} be a
+\texttt{PARAM}.\footnote{There are a few design considerations behind
+  the choice of not including \texttt{PARAM}s, \texttt{PARAMref}s and
+  \texttt{FIELDref}s directly in this specification. One is that the
+  VO-DML mapping schema might be used outside of is VOTable context to
+  describe and map data model instances in XML. The other is to keep the
+  VOTable and VO-DML schemata as much decoupled as possible, in order to
+  facilitate future revisions. Also, \texttt{PARAM} is too rich of an
+  element with its own attributes and semantics. Such semantics are
+  rather different than the ones in \texttt{VO-DML}, in particular
+  regarding the different kinds of types (\texttt{@utype},
+  \texttt{@xtype}, \texttt{@datatype}) and annotations
+  (\texttt{@arraysize}, \texttt{@ucd}) that a \texttt{PARAM} is composed
+  of, which do not have an equivalent in VO-DML.}
+
+\subsubsection{Template Attributes:
+\texttt{COLUMN}}\label{sec:norm-column}
+
+A \texttt{COLUMN} is a reference to a VOTable \texttt{FIELD}. Instances
+representing attributes as \texttt{COLUMN}s \textbf{must} be defined
+inside a \texttt{TEMPLATES} element. A \texttt{COLUMN} \textbf{must}
+have a \texttt{@dmtype} attribute whose value \textbf{must} be a valid
+vodml-ref defined by one of the declared models (\ref{sec:norm-model}).
+Such vodml-ref \textbf{must} identify the VO-DML type corresponding to
+the enclosing attribute's role.
+
+\subsubsection{References: \texttt{REFERENCE}}\label{sec:norm-reference}
+
+A reference is a relationship between a referring instance and a
+referred instance. While the referring instance can be both an
+\textbf{\texttt{ObjectType}} and a \textbf{\texttt{DataType}} the
+referred instance \textbf{must} be of an \textbf{\texttt{ObjectType}}.
+
+The reference can be to an identified direct instance in the same file
+(\ref{sec:norm-idref}), to a remote instance identified by a URI
+(\ref{sec:norm-remote-reference}), or to an instance indirectly
+represented by a template, through a foreign key pointing at the
+referred instance's primary key (\ref{sec:norm-reference-foreignkey}).
+
+\subsubsection{References: \texttt{IDREF}}\label{sec:norm-idref}
+
+In order to use \texttt{IDREF} the referred instance \textbf{must} be an
+instance of an \textbf{\texttt{ObjectType}}, it \textbf{must} be
+serialized as a direct instance, and it \textbf{must} be located in the
+same document as the referrer instance. Also, there \textbf{must} be a
+correspondent relationship defined in the VO-DML description of the
+model in which the referrer type is defined.
+
+\subsubsection{References:
+\texttt{REMOTEREFERENCE}}\label{sec:norm-remote-reference}
+
+In order to use \texttt{REMOTEREFERENCE} the referred instance
+\textbf{must} be an instance of an \textbf{\texttt{ObjectType}}, it
+\textbf{must} be serialized as a direct instance, and it \textbf{must}
+be located in a different document than the referrer instance. Also,
+there \textbf{must} be a correspondent relationship defined in the
+VO-DML description of the model in which the referrer type is defined.
+
+\texttt{REMOTEREFERENCE} is of type \texttt{xs:anyURI} an \textbf{must}
+identify a globally unique instance through a specific URI (e.g.~an IVOA
+Resource Name), \textbf{or} a URL to the serialization of the instance,
+but the URL \textbf{must} be persistent.
+
+\subsubsection{References:
+\texttt{FOREIGNKEY}}\label{sec:norm-reference-foreignkey}
+
+The referred instance may be serialized as a row in a table different
+than the one serializing the referrer (if any). In this case the
+reference is annotated through a \texttt{FOREIGNKEY}
+(\ref{sec:norm-foreign}).
+
+\subsubsection{Composition:
+\texttt{COMPOSITION}}\label{sec:norm-composition}
+
+A composition is a whole-part relationship between
+\textbf{\texttt{ObjectTypes}}, where one instance is said to be the
+container, or parent, or whole, and the other is said to be the
+contained, or child, or part. In a VOTable composed instances may be
+serialized directly within the parent instance
+(\ref{sec:norm-instance}) if the parent is directly representated or if
+the part is serialized in the same table as the parent, or externally
+(\ref{sec:norm-extinstances}) if the part is indirectly represented and
+serialized in a different table. Children refer back to their parent
+through an implicit container relationship (\ref{sec:norm-container}).
+The reference is achieved through a foreign key
+(\ref{sec:norm-foreign}) referencing the container's primary key
+(\ref{sec:norm-primary}).
+
+In order to be valid, the composition \textbf{must} link two
+\textbf{\texttt{ObjectType}}s and there must be a correspondent
+relationship defined in the VO-DML description of the model. The number
+of contained instances must be compatible with the relationship's
+multiplicity.
+
+The \texttt{COMPOSITION} element \textbf{must} have a \texttt{@dmrole}
+attribute, whose value \textbf{must} be a valid vodml-ref identifying a
+composition relationship in one of the models declared
+(\ref{sec:norm-model}), and types of the parent and children
+\textbf{must} be compatible with the relationship defined in that model.
+
+\subsubsection{Composition:
+\texttt{EXTINTANCES}}\label{sec:norm-extinstances}
+
+A composition relationship can delegate the definition of some of the
+children to an external \texttt{INSTANCE} declaration elsewhere in the
+file, for example if the instances are defined in a different table.
+
+The \texttt{EXTINSTANCES} element is useful for clients in that it links
+instances from the parent to the children. In relational data bases, the
+composition relatioship is usually implementing by referencing objects
+from the parts to the whole, not the other way around (see
+\ref{sec:norm-container}). This specification provides a way for
+containers to declare where the contained objects are located and
+described.
+
+(\textbf{TODO} this leaves the door open to the possibility that
+children refer to their parents but not the other way around. Should
+clients be prepared to this possibility? If so, then the
+\texttt{EXTINSTANCES} element is redundant. Otherwise what seems to be
+redundant is the \texttt{CONTAINER} element).
+
+\subsubsection{Composition:
+\texttt{CONTAINER}}\label{sec:norm-container}
+
+On the part side of a composition relationship, especially in complex
+Object Relational Mapping applications, parts include a reference to
+their containers. This is consistent with the relational implementation
+of the composition relationship. For more details see
+\ref{sec:norm-foreign}.
+
+\subsubsection{\texttt{PRIMARYKEY}}\label{sec:norm-primary}
+
+Instances \textbf{may} be identified by an object identifier through the
+\texttt{PRIMARYKEY} element.
+
+An object identifier can have any number of \texttt{PKFIELD} fields.
+Each \texttt{PKFIELD} is a choice among a \texttt{LITERAL}, i.e.~a local
+value (\ref{sec:norm-literal}), a \texttt{COLUMN}, i.e.~a reference to
+a cell value (\ref{sec:norm-column}), or a \texttt{CONSTANT}, i.e.~a
+reference to a \texttt{PARAM} (\ref{sec:norm-constant}).
+
+Fields are values that make up the object identifier. Generally only one
+value is used, but it is not uncommon for objects to be identified by a
+tuple of values.
+
+Primary keys \textbf{must} be unique within object types. In other terms
+there can be no two instances with the same primary key in a single
+file. If two instances appear to have the same primary key then client's
+behavior is undefined.
+
+\subsubsection{\texttt{FOREIGNKEY}}\label{sec:norm-foreign}
+
+In Object Relational Mapping a foreign key is the mechanism by which
+instances in a table identify other instances in many-to-one and
+many-to-many relationships with itself.
+
+In a simple model where a source can be observed in an arbitrary number
+of photometric filters, one would usually have a table for sources, with
+IDs and general metadata, a table for photometric filters, and a table
+for luminosity measurements of a source. In this implementation, the
+Luminosity entity is in a many-to-one relationship with both the Source
+and the Filter tables. This relationship is implemented by providing the
+Luminosity table with two foreign key columns to the Source and
+Luminosity tables. The value of the foreign keys is the ID of the Source
+and Filter instances to which each luminosity measurements refer to.
+
+A query might query the data base for ``all the luminosity measurements
+of Source 3c273'', implying the ownership relationship of a Source with
+its Luminosities, although there is no actual reference from the Source
+table to the Luminosity table.
+
+Providing the parent table with a column for each reference to an
+arbitrary number of potential children is clearly unsustainable, if at
+all possible.
+
+A \texttt{FOREIGNKEY} can provide a \texttt{TARGETID} to point to an
+identified element in the same file. (\textbf{TODO} Be more specific
+here on how to use \texttt{TARGETID})
+
+A \texttt{FOREIGNKEY} \textbf{must} contain at least one
+\texttt{PKFIELD}, and the structure of the key fields must be compatible
+with the one of the primary keys of the referenced instance.
+
+\subsection{Representing Types}\label{sec:norm-types}
+
+\subsubsection{\textbf{\texttt{PrimitiveType}}}\label{sec:norm-map-primitive}
+
+Primitive Types are types without structure, and so instances are
+represented by a simple value. They can be mapped to:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  a \texttt{LITERAL} element if the value is provided in the file's
+  header (\ref{sec:norm-literal});
+\item
+  a \texttt{CONSTANT}, i.e.~a reference to a \texttt{PARAM}, if the
+  value is mapped to the value of an existing \texttt{PARAM}
+  (\ref{sec:norm-constant});
+\item
+  a \texttt{COLUMN}, i.e.~a reference to a \texttt{FIELD}, if the value
+  is in a table cell. In this case we say that the enclosing instance is
+  indirectly represented by an \texttt{INSTANCE} template, with actual
+  instances serialized in tabular format (\ref{sec:norm-column}).
+\end{itemize}
+
+\subsubsection{\textbf{\texttt{Enumeration}} and
+\textbf{\texttt{EnumerationLiteral}}}\label{sec:norm-map-enumeration}
+
+Enumerations are primitive types with a limited number of possible,
+enumerated values. Enumerations are mapped to the same elements as
+primitive types (\ref{sec:norm-map-primitive}), with the limitation
+that values \textbf{must} be valid enumeration literals compatible with
+the type declared by the enclosing \texttt{ATTRIBUTE} element.
+
+\subsubsection{\textbf{\texttt{ObjectType}}}\label{sec:norm-object}
+
+Object types are mapped to the \texttt{INSTANCE} element
+(\ref{sec:norm-instance}). Object types can have
+\textbf{\texttt{DataType}}d attributes, which are mapped to the
+\texttt{ATTRIBUTE} element (\ref{sec:norm-attribute}). The
+\texttt{ATTRIBUTE} \textbf{must} have a \texttt{@dmrole} corresponding
+to the model-defined role identifier. In turn, the \texttt{ATTRIBUTE}
+\textbf{must} contain an \texttt{INSTANCE} with a type compatible with
+the attribute's role. Note that the type can be the type declared
+directly in the model or any specialization of that type defined in any
+model declared via the \texttt{MODEL} element.
+
+Object types can also have attributes with a \texttt{PrimitiveType} type
+or with an \texttt{Enumeration} type. In this case attributes are mapped
+following the patterns described in \ref{sec:norm-map-primitive} and
+\ref{sec:norm-map-enumeration} respectively.
+
+Object types can hold references to instances of other object types.
+This roles are mapped to the \texttt{REFERENCE} element
+(\ref{sec:norm-reference}). In this case the \texttt{REFERENCE}
+\textbf{must} have a \texttt{@dmrole} corresponding to the model-defined
+reference relationship.
+
+Finally, object types can be in composition relationships with other
+object types. An object type can be both the \emph{parent}, or
+\emph{whole}, and \emph{contain} its \emph{children}, or \emph{parts}
+(\ref{sec:norm-composition}).
+
+A parent \texttt{INSTANCE} will have a \texttt{COMPOSITION} element with
+the \texttt{@dmrole} of the composition relationship defined in the
+model.
+
+In addition to \texttt{INSTANCE}s, parents can also point to instances
+described elsewhere in the document through the \texttt{EXTINSTANCE}
+elements.
+
+For each composition relationship an arbitrary number of instances may
+be present, with two limitations:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  the number of instances must be compatible with the multiplicity of
+  the relationship;
+\item
+  the instances must have \texttt{@dmtype}s compatible with the data
+  type of the relationship defined in the model, i.e. the exact type
+  declared there or any of its subtypes.
+\end{itemize}
+
+A children \texttt{INSTANCE} will have a \texttt{CONTAINER} element
+pointing at the
+
+As described in \ref{sec:norm-globals} and \ref{sec:norm-templates} an
+\textbf{\texttt{ObjectType}} can be represented both directly or
+indirectly through standalone instances or instance templates
+respectively.
+
+\subsubsection{\textbf{\texttt{DataType}}}\label{sec:norm-data}
+
+Data types are mostly mapped like object types. This removes a lot of
+burden from data providers and clients that do not need to validate
+datasets, simplifying the syntax.
+
+Some constaints apply to \textbf{\texttt{DataType}}s. They are not
+enforced through XSD but datasets \textbf{must} meet such constraints in
+order to validate.
+
+VO-DML \textbf{\texttt{DataType}}s \textbf{cannot} be in composition
+relationship with any other types, so \texttt{COMPOSITION} and
+\texttt{CONTAINER} \textbf{cannot} be used inside an \texttt{INSTANCE}
+representing a \textbf{\texttt{DataType}}. Similarly,
+\textbf{\texttt{DataType}}s cannot have a \texttt{PRIMARYKEY}.
+
+Also, there \textbf{cannot} be references pointing to a
+\textbf{\texttt{DataType}} instance.
+
+\subsubsection{Type Generalization and
+Inheritance}\label{type-generalization-and-inheritance}
+
+(**TODO This needs to be expanded and completed with examples)
+
+VO-DML allows types to \emph{extend} or \emph{specialize} other types.
+As it happens in object oriented languages, an instance of a
+specialization, or \emph{subtype} of a more general type, or
+\emph{supertype}, is also a valid instance of the supertype, and can be
+used wherever an instance of a supertype is expected.
+
+This means that clients of the supertype must be able to recognize
+instances of the supertype even though a specialized subtype might have
+been instantiated. This case includes all kinds of clients discussed in
+\ref{sec:clients}. What we called \emph{guru} clients can read the
+VO-DML description files and can figure out the generalization
+relationships. \emph{Advanced} clients might or might not care about
+generalizations, but generalization must be mapped with particular care
+so that \emph{simple} clients can find the information they are seeking,
+even when a type they are interested in is present as an instance of one
+of its subtypes.
+
+Since we currently provide only one \texttt{@dmtype} per
+\texttt{INSTANCE}, only one type can be expressed for each instance.
+This type \textbf{must} always be the actual type of the instance. This
+means that clients \textbf{cannot} rely on the instance's type in order
+to recognize instances, unless they rely on VO-DML-aware specialized
+software libraries.
+
+In VO-DML specialized types inherit all of the supertype's vodml-id
+descriptors, including the prefix. This means that \texttt{@dmrole}s can
+always be matched, whether or not an instance represents a supertype or
+one of its subtypes.
+
+\subsubsection{Quantities}\label{quantities}
+
+(\textbf{TODO} This is a placeholder for specific mapping of ivoa
+quantities, but we need the ivoa model to settle)
+
+\subsubsection{Comparison of \texttt{EXTINSTANCES} and
+\texttt{INSTANCE}}\label{comparison-of-extinstances-and-instance}
+
+The distinction between \texttt{INSTANCE} and \texttt{EXTINSTANCES} as
+children of the \texttt{COMPOSITION} element allows for common object
+relational mappings to be used. In a completely normalized
+implementation each type may be serialized in its own table. However, in
+practice astronomical archives and datasets show some form of
+flattening, i.e.~some types are serialized as part of the table that
+represent the parent type, or multiple instances of the part type are
+serialized in the same table. This is the case, for instance, of sources
+and their luminosities.
+
+In a mission's archive, and in the data sets they serve, usually a
+single table represents a number of photometric measurements in
+different filters. This corresponds to a VO-DML annotation with an
+indirect \texttt{INSTANCE} for the Source type with a
+\texttt{COMPOSITION} element containing a number of indirect
+\texttt{INSTANCE}s for the luminosity measurements. Such instances
+correpond to the finite set of filters (and errors, and other kinds of
+metadata) specific to a particular mission. All the \texttt{INSTANCE}s,
+in this example, would point to columns in the same table.
+
+However, consider now the case of a data set that contains a number of
+sources, each with an arbitrary number of photometric measurements
+coming from different missions and archives. In this case a single
+flattened table is not an efficient or effective way of serializing such
+instances, and multiple tables can be used for sources and luminosities.
+The \texttt{EXTINSTANCES} mechanism provides a mechanism for
+representing this pattern. (\textbf{TODO} However, the safest and most
+efficient way is to just have children refer to their containers.)
+
+
+\pagebreak
+\bibliography{ivoatex/ivoabib,ivoatex/docrepo}
+\pagebreak
+
+\appendix
+
+\section{VO-DML XML schema NORMATIVE}\label{sec:schema}
+
+In order to keep the VOTable standard as stable as possible and to
+better separate the concerns of the different documents, the elements
+used for mapping data model instances are defined in a standalone
+schema, that is then imported by the VOTable 1.4 schema itself.
+
+\subsection{Additions to VOTable}\label{additions-to-votable}
+
+SOME TEXT HERE WAS NOT PROPERLY TRANSLATED FROM THE MARKDOWN: see "005-appendices.md for original"
+
+\subsection{VODML-mapping schema}\label{vodml-mapping-schema}
+
+\begin{lstlisting}[label=lst:mapping,caption=VOTable schema extension for VO-DML mapping,frame=tb]
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+  xmlns="http://www.ivoa.net/xml/VODML_Mapping/v1.0" 
+  targetNamespace="http://www.ivoa.net/xml/VODML_Mapping/v1.0">
+<!-- VODML types -->
+  
+  <xs:complexType name="VODML">
+    <xs:annotation>
+      <xs:documentation>
+      A VODML element MUST have at least one model and at least on globals or templates.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="MODEL" type="Model" minOccurs="1" maxOccurs="unbounded" />
+      <xs:choice minOccurs="1" maxOccurs="unbounded">
+        <xs:element name="GLOBALS" type="VODMLGlobals"/>
+        <xs:element name="TEMPLATES" type="VODMLInstanceTemplates"/> 
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="VODMLGlobals">
+    <xs:annotation>
+      <xs:documentation>
+      This section will describe all global instances, that is, 
+      instances that are not created once per row of a table.
+      It starts with a list of all the MODELs, then has all the GLOBAL instances.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="INSTANCE" type="VODMLObject" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:ID" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLInstanceTemplates">
+    <xs:annotation>
+      <xs:documentation>
+        This section will describe all the instance, that is, 
+        instances created once per row of a table.
+        The instances can have FIELDrefs describing how to fill individual 
+        primitive values in the templates from TABLEDATA values.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="INSTANCE" type="VODMLObject" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:attribute name="tableref" type="xs:IDREF" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="Model">
+    <xs:sequence>
+      <xs:element name="NAME">
+        <xs:simpleType>
+          <xs:restriction base="xs:string" > <!-- xsd:NCName ? -->
+            <xs:pattern value="[a-zA-Z][a-zA-Z0-9_\-]*">
+              <xs:annotation>
+                <xs:documentation>
+                  The name fof the model that is to be used as prefix when referring to its elements in a VODMLRef.
+                </xs:documentation>
+              </xs:annotation>
+            </xs:pattern>
+          </xs:restriction>      
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="URL" type="xs:anyURI" />
+      <xs:element name="IDENTIFIER" type="xs:string" minOccurs="0" >
+      <xs:annotation>
+      <xs:documentation>
+      The IVOA Identifier by which the model is registered in an IVOA registry.
+      </xs:documentation>
+      </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="ID" type="xs:ID" />
+  </xs:complexType>
+
+  <xs:complexType name="VODMLInstance" abstract="true">
+    <xs:attribute name="dmtype" type="VODMLRef" use="required" />
+    <xs:attribute name="ID" type="xs:ID">
+      <xs:annotation>
+        <xs:documentation>
+          Can be used by references as identifier for an object or template.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLObject">
+    <xs:complexContent>
+      <xs:extension base="VODMLInstance">
+        <xs:sequence>
+          <!-- lets be explicit -->
+          <xs:element name="PRIMARYKEY" type="VODMLObjectIdentifier" minOccurs="0" >
+            <xs:annotation>
+              <xs:documentation>
+                Objects, i.e. ObjectType instances, can have a unique identifier which can be used in ORM-like references.
+              </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="CONTAINER" type="VODMLReference" minOccurs="0" maxOccurs="1" >
+            <xs:annotation>
+              <xs:documentation>
+              Possible reference to a parent container of the object. May be given when the objects is not already
+              contained in a colleciton on the parent object.
+              Note, a VODMLReference can have multiple instances, but a CONTAINER MUST have only 1 instance.
+              </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="ATTRIBUTE" type="VODMLAttribute" minOccurs="0" maxOccurs="unbounded" />
+          <xs:element name="COMPOSITION" type="VODMLComposition" minOccurs="0" maxOccurs="unbounded" />
+          <xs:element name="REFERENCE" type="VODMLReference" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLPrimitive"> <!-- in place of PARAM -->
+    <xs:complexContent>
+      <xs:extension base="VODMLInstance">
+        <xs:sequence>
+          <xs:element name="OPTIONMAPPING" type="VODMLOptionMapping" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+              <xs:documentation>
+              Allows one to map OPTION values in VOTABLE to either EnumLiterals in 
+              data model (if TYPE identifies VO-DML/ Enumeration), or some concept in external 
+              semantic vocabulary (if ROLE is a VO-DML/Attribute containing a semanticconcept declaration).
+              NB: IF the datatype of the ROLE is an Enumeration, and there is NO optionmapping it 
+              implies that the values ARE the enum literals, or the concepts.
+              </xs:documentation>
+            </xs:annotation>
+          </xs:element>  
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+
+  <xs:complexType name="VODMLLiteral"> <!-- in place of PARAM -->
+    <xs:complexContent>
+      <xs:extension base="VODMLPrimitive">
+        <xs:attribute name="value" type="xs:string" use="required"/>
+        <xs:attribute name="unit" type="xs:string" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  
+  <xs:complexType name="VODMLOptionMapping">
+  <xs:annotation>
+    <xs:documentation>
+    Allows one to map particular values defined in a VALUES/OPTION list to enumeration literals
+    in the VO-DML model or to a concept in a SKOS vocabulary.
+    </xs:documentation>
+  </xs:annotation>
+    <xs:sequence>
+      <xs:element name="OPTION" type="xs:string" minOccurs="1" maxOccurs="1" >
+        <xs:annotation>
+          <xs:documentation>
+          The VOTable OPTION value that is being maped to enum literal or semantic concept.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:choice>
+        <xs:element name="ENUMLITERAL" type="VODMLRef" minOccurs="1" maxOccurs="1" />
+        <xs:element name="SEMANTICCONCEPT" type="xs:anyURI" minOccurs="1" maxOccurs="1" >
+          <xs:annotation>
+            <xs:documentation>
+            TBD anyURI as an identifier of concepts made sense for SKOS vocabularies. 
+            How about general semantic vocabularies?
+            I.e. is it ok for the type be xs:string iso xs:anyURI?
+            </xs:documentation>
+          </xs:annotation>
+        </xs:element>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+  
+  <xs:complexType name="VODMLFieldOrParamRef">
+    <xs:complexContent>
+      <xs:extension base="VODMLPrimitive">
+        <xs:attribute name="ref" type="xs:IDREF" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+
+  <xs:complexType name="VODMLRole">
+      <xs:attribute name="dmrole" type="VODMLRef" use="optional">
+        <xs:annotation>
+          <xs:documentation>
+          NB: ROLE has minOccurs=0 , at the moment only because VODMLObject::CONTAINER 
+          (a VODMLReferece) needs no role.
+          ATTRIBUTE, COMPOSITION and REFERENCE MUST have a ROLE.
+          Hard to model in XML schema, could be done in Schematron.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLAttribute">
+    <xs:complexContent>
+      <xs:extension base="VODMLRole">
+          <xs:choice>
+            <xs:choice maxOccurs="unbounded">
+              <xs:element name="COLUMN" type="VODMLFieldOrParamRef">
+                <xs:annotation>
+                  <xs:documentation>
+                    When used inside a "template" structured type, i.e. one defined inside a TABLE element,
+                    this allows one to indicate a FIELD representing the attribute.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="CONSTANT" type="VODMLFieldOrParamRef">
+                <xs:annotation>
+                  <xs:documentation>
+                    Ref to a predefined PARAM.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="LITERAL" type="VODMLLiteral">
+                <xs:annotation>
+                  <xs:documentation>
+                    Simple, primitive value, possibly with extra attributes.
+                    Similar to PARAM, but restricted attribute set.
+                  </xs:documentation>
+                </xs:annotation>
+              </xs:element>
+            </xs:choice>
+            <xs:element name="INSTANCE" type="VODMLObject" maxOccurs="unbounded">
+              <xs:annotation>
+                <xs:documentation>
+                  Structured value, must be instance of DataType
+                </xs:documentation>
+              </xs:annotation>
+            </xs:element>
+          </xs:choice>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLComposition">
+    <xs:annotation>
+      <xs:documentation>
+      A VODMLCollection represents collection of child objects in a VO-DML Composition relationship.
+      The collection receives the VO-DML ref to the composition relation, the member objects inside the 
+      collection do *not* have a ROLE.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="VODMLRole">
+        <xs:sequence>
+          <xs:element name="INSTANCE" type="VODMLObject" maxOccurs="unbounded" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>
+              An object in the collection. It type must conform to the declared type of the VO-DML Collection.
+              I.e. it must be that exact type or a sub-type.
+              </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="EXTINSTANCES" type="xs:IDREF" maxOccurs="unbounded" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>
+             Reference to a VODMLOBJECT declaration possibly containing child objects for this composition relation. 
+              </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+
+  
+
+  <xs:complexType name="VODMLReference">
+    <xs:annotation>
+      <xs:documentation>
+        Provides a reference to an ObjectType instance. Must allow that instance to be identified exactly.
+        VArious different modes depending on how that instance is serialized.
+        - If as a Standalone instance in same VOTable document, an IDREF can point to its ID (use IDREF).
+        - If as a row in a TABLE a relational foreign key can be used (use ORMREFERENCE)
+        - if a remote document contains the serialized instance, a URI must be used that MUST be able to identify 
+        that object inside its remote serialization (a REMOTEREFERENCE must be used).
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="VODMLRole">
+        <xs:sequence>
+          <xs:choice maxOccurs="unbounded">
+            <xs:element name="IDREF" type="xs:IDREF">
+              <xs:annotation>
+                <xs:documentation>
+                  MUST identify an individual/standalone object defined in the same XML document.
+                </xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="REMOTEREFERENCE" type="xs:anyURI" />
+            <xs:element name="FOREIGNKEY" type="VODMLORMReference" />
+          </xs:choice>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLORMReference">
+    <xs:annotation>
+      <xs:documentation>
+        A reference to an object identified by that object's identifier.
+        The referenced object must be stored in a TABLE and must have been annotated with an explicit identifier.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="VODMLObjectIdentifier">
+        <xs:sequence>
+          <xs:element name="TARGETID" type="xs:IDREF" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>
+                This element MAY be used to provide a IDREF to the (ID of a) VODMLObject template annotating
+                the TABLE containing the referenced object.
+              </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLObjectIdentifierField">
+    <xs:choice>
+      <xs:element name="LITERAL" type="VODMLLiteral"/>
+      <xs:element name="COLUMN" type="VODMLFieldOrParamRef"/>
+      <xs:element name="CONSTANT" type="VODMLFieldOrParamRef"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="VODMLObjectIdentifier">
+    <xs:annotation>
+      <xs:documentation>
+        This type allows a generic identifier to be assigned to an object. 
+        The identifier consists of one or more IDFIELD-s.
+        This way of identifying an object is equivalent to using one or more columns 
+        in a table as primary key.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="PKFIELD" maxOccurs="unbounded" type="VODMLObjectIdentifierField">
+        <xs:annotation>
+          <xs:documentation>
+            A field in an identifier. The identifier may contain 1 or more such fields. Their order 
+            is important, ORM references to the object must use the same order for their foreign key.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="VODMLRef">
+    <xs:annotation>
+      <xs:documentation>
+        The valid format of a reference to a VO-DML element. (Used to be 'UTYPE').
+        MUST have a prefix that elsewhere in the VOTable is defined to correspond to a 
+        VO-DML model defining the referenced element.
+        Suffix, separated from the prefix by a ':', MUST correspond to the vodml-id of the referenced element in the
+        VO-DML/XML representation of that model.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-zA-Z][a-zA-Z0-9_\-]*:[a-zA-Z][a-zA-Z0-9\._]*" />
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>
+\end{lstlisting}
+
+\section{VO-DSL listings}
+This appendix shows various VO-DSL examples referenced in the text.
+
+TODO decide whether we want to keep this here or whether we will only show VOTables. 
+Were these VO-DSL samples here to be translated into VOTable?
+
+\subsection{Simple}
+\begin{lstlisting}[label=lst:simple,caption=Example VO-DSL listing,frame=tb]
+def volute = "http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models"
+def github = "https://raw.githubusercontent.com/olaurino/jovial/new-mapping/src/test/resources/votable"
+
+def ivoaLocation = new URL("$volute/ivoa/vo-dml/IVOA-v1.0.vo-dml.xml")
+def filterLocation = new URL("http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml-org/models/sample/filter/Filter.vo-dml.xml")
+def sampleLocation = new URL("$github/Sample.vo-dml.xml")
+
+dmInstance {
+    model(vodmlURL: ivoaLocation)
+    model(vodmlURL: filterLocation)
+    model(vodmlURL: sampleLocation)
+
+    instance(type: "sample:catalog.SkyCoordinateFrame", id: "_icrs") {
+        instance(role: "name", value: "ICRS")
+    }
+
+    table(id: "_table1") {
+        def sourceNames = ['08120809-0206132', '08115683-0205428', '08115826-0205336']
+        def ra = [123.033734, 122.986794, 122.992773]
+        def dec = [-2.103671, -2.095231, -2.092676]
+
+        instance(type: "sample:catalog.SDSSSource") {
+            column(role: "name", id: "_designation", data: sourceNames)
+            instance(role: "position") {
+                column(role: "longitude", id: "_ra", data: ra)
+                column(role: "latitude", id: "_dec", data: dec)
+                reference(role: "frame") {
+                    idref("_icrs")
+                }
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+
+\begin{lstlisting}[label=lst:direct_sources,caption=Direct Source mapping,frame=tb]
+def volute = "http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models"
+def github = "https://raw.githubusercontent.com/olaurino/jovial/new-mapping/src/test/resources/votable"
+
+def ivoaLocation = new URL("$volute/ivoa/vo-dml/IVOA-v1.0.vo-dml.xml")
+def filterLocation = new URL("http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml-org/models/sample/filter/Filter.vo-dml.xml")
+def sampleLocation = new URL("$github/Sample.vo-dml.xml")
+
+dmInstance {
+    model(vodmlURL: ivoaLocation)
+    model(vodmlURL: filterLocation)
+    model(vodmlURL: sampleLocation)
+
+    instance(type: "sample:catalog.SkyCoordinateFrame", id: "_icrs") {
+        instance(role: "name", value: "ICRS")
+    }
+
+    instance(type: "sample:catalog.SDSSSource") {
+        instance(role: "name", value: '08120809-0206132')
+        instance(role: "position") {
+            instance(role: "longitude", value: 123.033734)
+            instance(role: "latitude", value: -2.103671)
+            reference(role: "frame") {
+                idref("_icrs")
+            }
+        }
+    }
+
+    instance(type: "sample:catalog.SDSSSource") {
+        instance(role: "name", value: '08115683-0205428')
+        instance(role: "position") {
+            instance(role: "longitude", value: 122.986794)
+            instance(role: "latitude", value: -2.095231)
+            reference(role: "frame") {
+                idref("_icrs")
+            }
+        }
+    }
+
+    instance(type: "sample:catalog.SDSSSource") {
+        instance(role: "name", value: '08120809-0206132')
+        instance(role: "position") {
+            instance(role: "longitude", value: 122.992773)
+            instance(role: "latitude", value: -2.092676)
+            reference(role: "frame") {
+                idref("_icrs")
+            }
+        }
+    }
+}
+
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:complex,caption=Full Example VO-DSL listing for complex mapping,frame=tb]
+def volute = "http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models"
+def github = "https://raw.githubusercontent.com/olaurino/jovial/new-mapping/src/test/resources/votable"
+
+def ivoaLocation = new URL("$volute/ivoa/vo-dml/IVOA-v1.0.vo-dml.xml")
+def filterLocation = new URL("http://volute.g-vo.org/svn/trunk/projects/dm/vo-dml-org/models/sample/filter/Filter.vo-dml.xml")
+def sampleLocation = new URL("$github/Sample.vo-dml.xml")
+
+dmInstance {
+    model(vodmlURL: ivoaLocation)
+    model(vodmlURL: filterLocation)
+    model(vodmlURL: sampleLocation)
+
+    instance(type: "sample:catalog.SkyCoordinateFrame", id: "_icrs") {
+        instance(role: "name", value: "ICRS")
+    }
+
+    ["2mass:H", "2mass:J", "2mass:K"].each { name ->
+        def id = "_${name.replace(':', '')}"
+        instance(type: "filter:PhotometryFilter", id: id) {
+            pk(value: id)
+            instance(role: "name", value: name)
+        }
+    }
+
+    globals(id: "_SDSS_FILTERS") {
+        ["sdss:g", "sdss:r", "sdss:u"].each { name ->
+            instance(type: "filter:PhotometryFilter") {
+                pk(value: name)
+                instance(role: "name", value: name)
+            }
+        }
+    }
+
+    resource(id: "table_objects") {
+
+        table(id: "_table1") {
+
+            def sourceNames = ['08120809-0206132', '08115683-0205428', '08115826-0205336']
+            def ra = [123.033734, 122.986794, 122.992773]
+            def dec = [-2.103671, -2.095231, -2.092676]
+            def j = [14.161, 15.860, 16.273]
+            def jErr = [0.025, 0.060, 0.096]
+            def h = [13.681, 15.103, 15.718]
+            def hErr = [0.027, 0.077, 0.112]
+            def k = [13.675, 14.847, 15.460]
+            def kErr = [0.048, 0.127, 0.212]
+
+            instance(type: "sample:catalog.SDSSSource", id: "_source") {
+                pk() {
+                    column(role: "name", id: "_designation", data: sourceNames)
+                }
+                instance(role: "position") {
+                    column(role: "longitude", id: "_ra", data: ra)
+                    column(role: "latitude", id: "_dec", data: dec)
+                    reference(role: "frame") {
+                        idref("_icrs")
+                    }
+                }
+                instance(role: "positionError") {
+                    instance(role: "longError", value: 0.1)
+                    instance(role: "latError", value: 0.1)
+                }
+
+                instance(role: "luminosity") {
+                    column(role: "value", id: "_magH", data: h)
+                    column(role: "error", id: "_errH", data: hErr)
+                    instance(role: "type", value: "magnitude")
+                    reference(role: "filter") {
+                        idref("_2massH")
+                    }
+                }
+                instance(role: "luminosity") {
+                    column(role: "value", id: "_magK", data: k)
+                    column(role: "error", id: "_errK", data: kErr)
+                    instance(role: "type", value: "magnitude")
+                    reference(role: "filter") {
+                        idref("_2massK")
+                    }
+                }
+                instance(role: "luminosity") {
+                    column(role: "error", id: "_errJ", data: jErr)
+                    reference(role: "filter") {
+                        idref("_2massJ")
+                    }
+                    column(role: "value", id: "_magJ", data: j)
+                    instance(role: "type", value: "magnitude")
+                }
+                composition(role: "luminosity", ref: "SDSS_MAGS")
+            }
+        }
+
+        def sourceId = ["08120809-0206132", "08120809-0206132"]
+        def mag = [23.2, 23.0]
+        def err = [0.04, 0.03]
+        def filterId = ["sdss:g", "sdss:r"]
+
+        table(id: "_sdss_mags") {
+            instance(id: "SDSS_MAGS", type: "sample:catalog.LuminosityMeasurement") {
+                fk(target: "_source") {
+                    column(id: "_container", data: sourceId)
+                }
+                column(role: "value", id: "_mag", data: mag)
+                column(role: "error", id: "_eMag", data: err)
+                reference(role: "filter") {
+                    fk(target: "_SDSS_FILTERS") {
+                        column(id: "_filter", data: filterId)
+                    }
+                }
+            }
+        }
+    }
+}
+
+\end{lstlisting}
+
+\end{document}
