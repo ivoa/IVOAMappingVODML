@@ -2,12 +2,13 @@
 \documentclass[11pt,a4paper]{ivoa}
 \input tthdefs
 
-\title{Mapping VO-DMl}
+
+\title{Mapping VO-DML}
 
 % see ivoatexDoc for what group names to use here
 \ivoagroup{DM}
 
-\author[????URL????]{Omar Laurino}
+\author{Omar Laurino}
 \author{Gerard Lemson}
 
 \editor{Omar Laurino}
@@ -19,7 +20,17 @@
 
 \begin{document}
 \begin{abstract}
-???? Abstract ????
+Data providers and curators provide a great deal of metadata with their
+data ﬁles: this metadata is invaluable for users and for Virtual Observatory
+software developers. In order to be interoperable, the metadata must refer
+to common Data Models. This speciﬁcation deﬁnes a scheme for annotating
+VOTable instances in a standard, consistent, interoperable fashion, so that
+each piece of metadata can unambiguously refer to the correct Data Model
+element it expresses, assuming there is a suitable data model. With this
+speciﬁcation, data providers can unambiguously and completely represent
+Data Model instances in the VOTable format, and clients can build faithful
+representations of such instances. The mapping is operated through opaque,
+portable strings.
 \end{abstract}
 
 
@@ -50,13 +61,13 @@ of data files, one needs:
 \begin{itemize}
 \item
   A language to unambiguously and efficiently describe Data Models and
-  their elements' identifiers (VO-DML, {[}@vodml{]}).
+  their elements' identifiers (VO-DML, \cite{2018ivoa.spec.0910L}).
 \item
   Pointers linking a specific piece of information (data or metadata) to
   the Data Model element it represents\footnote{This used to be the
     assumed role of the \texttt{@utype} attribute in VOTable and for
     example TAP. This document is based on the new \texttt{VODML}
-    element in \texttt{VOTable} 1.4 {[}@votable{]}.}.
+    element in \texttt{VOTable} 1.4 \cite{2019ivoa.spec.1021O}}.
 \item
   A mapping specification that unambiguously describes the mapping
   strategies that lead to faithful representations of Data Model
@@ -86,7 +97,7 @@ While one might argue that a standard for portable, interoperable Data
 Model representation would have been required before one could think
 about such a mapping, we are specifying it only at a later stage. In
 particular several different interpretations of \texttt{UTYPE}s have
-been proposed and used {[}@usages{]}. This specification aims to resolve
+been proposed and used \cite{note:utypeusage}. This specification aims to resolve
 this ambiguity.
 
 As a matter of fact, existing files and services can be made compliant
@@ -102,21 +113,21 @@ this specification to the current and future IVOA practices.
 This specification describes how to represent Data Model instances using
 the VOTable schema. This representation uses the
 \texttt{\textless{}VODML\textgreater{}} element introduced for this
-purpose in VOTable v1.4 {[}@votable{]} and the structure of the VOTable
+purpose in VOTable v1.4 \cite{2019ivoa.spec.1021O} and the structure of the VOTable
 meta-model elements to indicate how instances of data models are stored
 in VOTable documents. We show many examples and give a complete listing
 of allowed mapping patterns.
 
-In sections {[}-@sec:usecases{]} to {[}-@sec:info{]} we give an
+In sections \ref{sec:usecases} to \ref{sec:info} we give an
 introduction to why and how the VODML elements can be used to hold
 pointers into the data models.
 
-Section {[}-@sec:normative{]} is a rigorous listing of all valid
+Section \ref{sec:normative} is a rigorous listing of all valid
 annotations, and the normative part of the specification.
 
-The appendices contain additional material. {[}Section @sec:schema{]}
+The appendices contain additional material. Section \ref{sec:schema}
 describes the VODML annotation element that was added to the VOTable
-schema to support this mapping specification. {[}Section @sec:clients{]}
+schema to support this mapping specification. Section \ref{sec:clients}
 describes different types of client software and how they could deal
 with VOTables annotated according to the current specification.
 
@@ -738,22 +749,22 @@ to VO-DML. Such a pattern identifies a VOTable element with a VO-DML
 element. The VO-DML element is said to be \emph{represented} by the
 VOTable element. The mapping pattern indicates that instances of
 identified VO-DML types are present in the VOTable. These may be atomic
-\emph{values} (instances of VO-DML ValueTypes {[}@vodml{]}) or
+\emph{values} (instances of VO-DML ValueTypes \cite{2018ivoa.spec.0910L}) or
 represented by cells in a table column identified by a \texttt{FIELD}.
 Alternatively they may be instances of structured types.
 
-The extension to the VOTable schema is reproduced in {[}@sec:schema{]}.
+The extension to the VOTable schema is reproduced in \ref{sec:schema}.
 
 \subsection{VODMLReference}\label{vodmlreference}
 
 This XML type represents a reference to a single element in a VO-DML/XML
-document. It take over the role of the \texttt{@utype} attribute in this
+document. It takes over the role of the \texttt{@utype} attribute in this
 regards. Whenever we wish to refer to instances of the VODMLReference
 type we will call them \textbf{vodmlref}-s. A vodmlref is a string with
 the following syntax:
 
 \begin{verbatim}
-vodmlref ::= prefix ‘:’ vodml-id
+vodmlref ::= prefix â€˜:â€™ vodml-id
 \end{verbatim}
 
 The prefix identifies the model in which the element identified by the
@@ -766,7 +777,7 @@ must follow the same syntax rules defined in the VO-DML/Schema document.
 
 Prefixes MUST be exactly the same as the \textbf{name} attribute of the
 model in the VO-DML/XML document that defines it. They are sequences of
-{[}A-Za-z0-9\_-{]}, and they are case sensitive.
+$[A-Za-z0-9\_-]$, and they are case sensitive.
 
 For new models, that are not (yet) standardized or for custom data
 models used in a smaller community, it is recommended to form DM
@@ -778,7 +789,7 @@ standard data model; thus, NED's derivation of spec could have
 
 Prefixes correspond to major versions for the corresponding data models.
 Thus, \textbf{vodmlrefs} remain constant over ``compatible'' changes in
-the sense of {[}@vodml{]}.~In consequence, clients must assume a
+the sense of \cite{2018ivoa.spec.0910L}.~In consequence, clients must assume a
 compatible extension when encountering an unknown \textbf{vodmlref} with
 a known prefix (and should in general not fail).
 
@@ -787,7 +798,7 @@ URLs for a given prefix. ~To identify a data model, use the prefix, not
 the VO-DML URL, which is intended for retrieval of the data model
 definition exclusively. ~In case a client requires the exact minor
 version of the data model, it must inspect the models declarations as
-described in {[}@sec:normative{]}
+described in \ref{sec:normative}.
 
 (\textbf{TODO} OL: This doesn't feel right. I believe minor versions
 should be uniquely identified by a URI and without having to parse the
@@ -812,12 +823,12 @@ Mapping}\label{single-table-representations-and-object-relational-mapping}
 Broadly speaking, this specification is all about Object-Relational
 Mapping (ORM). Data Models are represented in VO-DML according to an
 Entity-Relationship paradigm, in a fashion that is implementable by
-relational databases, object oriented languages, and possibly to certain
-document oriented dabases as well.
+relational databases, object oriented languages, and possibly by certain
+document oriented data bases as well.
 
 As VOTable can represent several tables in the same file with rich
-metadata, one can look at VOTable as a database that can represent
-complex relational models.
+metadata, one can look at VOTable as a data base that can store
+instances of complex relational models.
 
 Such models are usually defined in terms of entities, with each table
 representing each entity, and relationships that can be expressed as
@@ -840,7 +851,7 @@ de-normalized representations, where the model is only partly
 normalized, is more challenging but should also be addressable in terms
 of this specification.
 
-In any case, the examples in {[}@sec:normative{]} are focused on the
+In any case, the examples in \ref{sec:normative} are focused on the
 single-table, flattened representations of instances according to some
 data model. Some of the patterns described in these sections are also
 applicable to simple ORM cases. Especially the sections dealing with
@@ -857,8 +868,7 @@ or applications built on top of standard software libraries that
 implement this specification as a whole will need to take advantage of
 the ORM mapping patterns.
 
-\section{Patterns for annotating VOTable
-{[}NORMATIVE{]}}\label{sec:normative}
+\section{Patterns for annotating VOTable}\label{sec:normative}
 
 In this section we list all legal mapping patterns that can be used to
 express how instances of VO-DML-defined types are represented in a
@@ -872,9 +882,9 @@ included in a new \texttt{VODML} element and its descendents. The
 following sections introduce each element and how it is used to map the
 VO-DML concepts to VOTable documents.
 
-In particular, {[}@sec:norm-vodml;@sec:norm-model;@sec:norm-relations{]}
-describe the schema elements that provide data model annotations, while
-{[}@sec:norm-types{]} inverts this approach and shows how to map VO-DML
+In particular, \ref{sec:norm-vodml};\ref{sec:norm-relations} describe the
+schema elements that provide data model annotations, while
+\ref{sec:norm-types} inverts this approach and shows how to map VO-DML
 concepts to the VOTable elements that have been introduced.
 
 Some comments on how we refer to VOTable and VO-DML elements:
@@ -933,8 +943,6 @@ which we use in the descriptions below:
   or an ancestor of that container.
 \end{itemize}
 
-\textbf{Regarding the \emph{normative} aspects of this specification}
-
 When we say this section is NORMATIVE we mean that:
 
 \begin{enumerate}
@@ -962,89 +970,702 @@ When we say this section is NORMATIVE we mean that:
 
 \subsection{The \texttt{VODML} element}\label{sec:norm-vodml}
 
+This specification introduces a new \texttt{VODML} element to
+\texttt{VOTABLE}.
+
+The element is a direct child of \texttt{VOTABLE} and only one
+\texttt{VODML} element is allowed in each file. This element contains
+all the data model annotations for the entire file \footnote{Earlier
+  versions of this specification had the \texttt{VODML} element defined
+  as a potential child of several existing elements, including
+  \texttt{RESOURCE} and \texttt{TABLE}. While this achieved a form of
+  locality by bringing the annotations close to the elements it was
+  annotating, it introduced two different, valid ways of annotating
+  files. Also, the locality it achieved was completely lost in the more
+  complex cases with multiple \texttt{TABLE} elements, where this kind
+  of locality matters the most. A single instance of \texttt{VODML} is
+  much simpler to implement for data providers and consumers alike, and
+  it provides only one obvious way of annotating a file. On the other
+  hand, the single \texttt{VODML} element might pose challenges to
+  providers streaming VOTable instances without a knowledge of the
+  semantics of the contents upfront. This case seems more like a
+  theoretical possibility than an actual implementation at this point,
+  so it was ignored. It could always be possible to add the
+  \texttt{VODML} element as a child of other elements in future versions
+  of this specification, keeping into account actual requirements from
+  actual implementations rather than just a theoretical possibility.}.
+
+There are three sections making up the contents of the \texttt{VODML}
+annotation:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  model declarations (\texttt{MODEL} elements)
+\item
+  global instances (\texttt{GLOBALS} elements)
+\item
+  tabular instance templates (\texttt{TEMPLATES}).
+\end{itemize}
+
+The model declarations introduce the models used in the annotation.
+Global instances are direct instances, i.e.~instances whose values are
+completely determined by the annotation, as opposed to instance
+templates, which annotates multiple instances that have some of their
+values represented in tabular format inside the annotated file, as
+described in more detiail in the following sections.
+
 \subsubsection{Example}\label{example}
 
 \begin{verbatim}
-file: instances/models.votable.xml
+file: instances/simple.vodsl
+caption: |
+    Example VOTable with basic annotations. This VOTable illustrates the basic
+    annotation elements in the `VODML` section. More complex examples will be provided
+    in the following sections.
+id: lst:simple
 classes:
   - xml
-caption: A Caption
-id: lst:code
+  - numberLines
 ----
 \end{verbatim}
 
-\subsubsection{Schema Constraints}\label{schema-constraints}
+The example in \ref{lst:simple} uses sample models that are simple
+enough to be useful for exploring the mapping patterns, but also
+complete as they exercise the entirety of the mapping schema. These
+models are not IVOA standard models themselves, but were defined for
+illustrating the mapping specification only.
 
-\subsubsection{Models Declaration:
-\texttt{MODELS}}\label{models-declaration-models}
+\subsubsection{Models Declaration: \texttt{MODEL}}\label{sec:norm-model}
+
+A VOTable can provide serializations for an arbitrary number of data
+model types. In order to declare which models are represented in the
+file, data providers \textbf{must} declare them through the
+\texttt{MODEL} elements.
+
+Only models that are used in the file must be declared. A model is used
+if at least one element in the file has a \texttt{vodml-ref} with the
+model's prefix/name. In other terms, only models that define
+\texttt{vodml-ids} used in the annotation (see \ref{sec:vodmlref}) must
+be declared.
+
+A \texttt{MODEL} is uniquely and globally identified by its
+\texttt{NAME}, which refers to the latest available minor version of a
+specific model. According to the VO-DML specification \cite{2018ivoa.spec.0910L}, all
+minor versions of a model are compatible with each other, and major
+versions have different names (e.g. \texttt{stc} vs \texttt{stc2}).
+
+Clients should not be sensible to the specific minor version of a model
+and can simply ignore \texttt{vodml-ref}s they are not familiar with.
+
+The \texttt{NAME} is also the prefix of the \texttt{vodml-ref}s pointing
+to elements of a specific model.
+
+For clients that need to parse the model descriptions, i.e.~the
+VODML/XML file of a model, data providers \textbf{must} include the URL
+of the VODML/XML document in the \texttt{MODEL/URL} element. if the
+model is defined in an IVOA recommendation, then this URL \textbf{must}
+be persistent, and the same URL that is registered for that model in the
+IVOA registries. If the model is a custom extensions, it \textbf{should}
+also be registered in IVOA registries. However, since this is not a
+requirement, for custom extensions that are not registered data
+providers \textbf{must} still provide the URL of the VODML/XML
+description file, and care should be taken into ensuring that the URL is
+persistent, otherwise clients will not be able to read the model
+definition. For more information on registering and identifying data
+models, please refer to the VO-DML specification (\cite{2018ivoa.spec.0910L})
+
+Note that because of the above procurements, clients are not required to
+resolve the \texttt{NAME} of the model to its VODML/XML document, but
+can, if necessary, rely on the \texttt{URL} element.
+
+In \ref{lst:simple} three models are declared, with the names
+\texttt{ivoa}, \texttt{filter}, and \texttt{sample}, which are the
+prefixes used in all the \texttt{vodml-refs} in the file.
+
+\subsubsection{Instance Annotation: \texttt{INSTANCE}}\label{sec:norm-instance}
+
+VO-DML structured types are annotated by using the new \texttt{INSTANCE}
+XML element. Note that there is no difference, from a schema point of
+view, between \texttt{**ObjectType**}s and \texttt{**DataType**}s.
+However, some restrictions apply and are enforced through schematron
+rules. More details are provided in
+\ref{sec:norm-object};\ref{sec:norm-data}.
+
+Instances \textbf{must} a \emph{type} (\texttt{@dmtype} attribute). Note
+that instances are not annotated with a role, as roles are mapped to
+specific XML elements (see \ref{sec:norm-relations}). This is
+compatible with the intuitive fact that the same instance can have
+different roles in relationships with other instances.
+
+Instances \textbf{may} be provided with an \texttt{@ID} value which
+allows other objects to refer to the instance itself (see
+\ref{sec:norm-idref}).
+
+Instances usually have a number of \emph{roles}, which can be themselves
+instances through a composition relationship
+\ref{sec:norm-composition}), references to other instances
+\ref{sec:norm-reference}), or attributes (\ref{sec:norm-attribute}).
+
+As explained in more detail in \ref{sec:norm-composition} and related
+sections, a composition relationship is annotated so that parents
+contain or refer to children instances and children point to their
+parent instances through the \texttt{CONTAINER} element
+(\ref{sec:norm-container}).
 
 \subsubsection{Global Instances:
-\texttt{GLOBALS}}\label{global-instances-globals}
+\texttt{GLOBALS}}\label{sec:norm-globals}
+
+Some annotations may map the VOTable contents to instances of data model
+types that are global in the file, possibly because such instances are
+referenced by other intances that annotate specific tables. More
+generally, some annotations will define instances that are completely
+defined in terms of constant value, i.e.~they are not represented in
+tabular form. Rather, they are completely and directly represented by an
+\texttt{XML} element.
+
+Such instances should be included in the \texttt{GLOBALS} element.
+
+An annotation can have multiple \texttt{GLOBALS} sections so to group
+together global instances that are related to each other.
+
+In particular, \texttt{GLOBALS} sections can be identifier by an
+\texttt{@ID} attribute. This is particularly useful when referencing
+global instances from table elements, see for instance
+\ref{sec:norm-reference-foreignkey}.
+
+\texttt{GLOBALS} \textbf{must} only contain direct representations of
+instances, i.e. \texttt{INSTANCE} elements that do not have any
+\texttt{COLUMN} elements directly or in any of their descendants. This
+rule is not enforces via the XSD schema but by schematron rules.
+
+Also, \texttt{GLOBALS} \textbf{should not} contain any
+\texttt{INSTANCE}s with \texttt{REFERENCE}s to indirect
+\texttt{INSTANCE}s, unless the model allows for multiple references with
+the same role, which is however deprecated by the \texttt{VO-DML}
+specification.
+
+As an example, \ref{lst:simple} contains one \texttt{GLOBALS} section
+with one instance representing a coordinate frame in the rather
+simplistic \emph{sample} model. The coordinate frame instance is
+completely determined by the global \texttt{INSTANCE}.
 
 \subsubsection{Tabular Instances:
-\texttt{TEMPLATES}}\label{tabular-instances-templates}
+\texttt{TEMPLATES}}\label{sec:norm-templates}
 
-\subsubsection{Instance Annotation:
-\texttt{INSTANCE}}\label{instance-annotation-instance}
+Most data in VOTable is expressed in tabular form, each row representing
+one individual instance. When this is the case, instances need to be
+represented through \emph{templates} in the \texttt{TEMPLATES} section
+of the annotation. An \texttt{INSTANCE} in a template is identical to
+\texttt{INSTANCE}s in the \texttt{GLOBALS} section, but they are also
+allowed to contain \texttt{COLUMN} elements (see
+\ref{sec:norm-column}), which are references to regular VOTable
+\texttt{FIELD}s. Rather than being directly and completely represented
+by its \texttt{INSTANCE} annotation, instances are thus materialized for
+each row in a table, according to their annotation. Note that a
+\texttt{COLUMN} may be present either directly in an \texttt{INSTANCE}
+or in any of its descendent \texttt{INSTANCE}s.
 
-\subsection{Model Declaration: MODEL}\label{sec:norm-model}
+\texttt{TEMPLATES} \textbf{must} refer to a \texttt{TABLE} through the
+\texttt{tableref} attribute. \texttt{COLUMN} elements inside a template
+\texttt{INSTANCE} \textbf{must} be references to \texttt{FIELD}s in the
+\texttt{TABLE} identified by \texttt{tableref}.
+
+In \ref{lst:simple} table \texttt{\_table1} contains simple
+astronomical sources with columns for the sources names, Right
+Ascension, and Declination in the ICRS reference frame. Thus, the
+sources are annotated using an \texttt{INSTANCE} element inside the
+\texttt{TEMPLATES} section of the \texttt{VODML} element. The instance
+and its attributes refer to the three columns in the table and map their
+contents to the attributes of sources and positions defined in the
+respective data model.
+
+\subsubsection{Direct vs Indirect
+Instances}\label{direct-vs-indirect-instances}
+
+As an illustration of the difference between direct and indirect
+instances, consider the following VOTable:
+
+\begin{verbatim}
+file: instances/direct_sources.vodsl
+caption: |
+    VOTable where all instances are direct rather than indirect.
+id: lst:direct_sources
+classes:
+  - xml
+  - numberLines
+----
+\end{verbatim}
+
+This is a representation of the very same instances as in
+\ref{lst:simple}. However, while \ref{lst:simple} uses template
+instances in \texttt{TEMPLATES} and a \texttt{TABLE} element to
+represent the values of the sources, \ref{lst:direct_sources} uses
+direct representations for all three sources in the example.
+
+Generally speaking, this specification is used to annotate data products
+according to one or more data models. In this sense, the choice on
+whether to use direct or indirect representations is driven by the data
+being produced. In principle, for each indirect representation there is
+an equivalent indirect representation where template instances and one
+or more tables are turned into a number of explicit, direct instances.
+
+\subsubsection{Schema Constraints}\label{schema-constraints}
+
+In order to be valid, the \texttt{VODML} \textbf{must} contain at least
+one \texttt{MODEL} instance and at least one of either \texttt{GLOBALS}
+or \texttt{TEMPLATES}, which in turn \textbf{must} contain at least one
+\texttt{INSTANCE}.
 
 \subsection{Relations}\label{sec:norm-relations}
 
-\subsubsection{Attributes: \texttt{INSTANCE}}\label{attributes-instance}
+All instances have a type, and some instances also play a \emph{role} in
+another instance. For example, if a \textbf{Source} has a
+\textbf{position} of type \textbf{Coordinate}, then an instance of type
+\textbf{Coordinate} will also have the role of \textbf{position} in the
+enclosing \textbf{Source} instance.
 
-\subsubsection{Attributes: \texttt{LITERAL}}\label{attributes-literal}
+The role corresponds to a relationship between two types.
 
-\subsubsection{Attributes: \texttt{CONSTANT}}\label{attributes-constant}
+The following roles are mapped from VO-DML to VOTable:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Attributes (\ref{sec:norm-attribute}).
+\item
+  Compositions (\ref{sec:norm-composition}).
+\item
+  References (\ref{sec:norm-reference}).
+\end{itemize}
+
+\subsubsection{Attributes: \texttt{ATTRIBUTE}}\label{sec:norm-attribute}
+
+An attribute may be represented by another instance
+(\ref{sec:norm-instance}), by a primitive or enumerated value
+(\ref{sec:norm-literal};\ref{sec:norm-constant}), or by a column
+(\ref{sec:norm-column}) if the parent instance is a template, i.e.~an
+indirect representation.
+
+An \texttt{ATTRIBUTE} \textbf{must} have a \texttt{@dmrole} attribute
+indicating the role of the attribute, and such \texttt{@dmrole}
+\textbf{must} be a valid vodml-ref as defined in one of the VO-DML
+models declared in the models section (\ref{sec:norm-model}). The
+vodml-ref \textbf{must} also identify a VO-DML Attribute.
+
+\subsubsection{Attributes: \texttt{LITERAL}}\label{sec:norm-literal}
+
+A \texttt{LITERAL} \textbf{must} represent an attribute with a primitive
+or enumerated type. It \textbf{must} have a \texttt{@value} attribute
+and optionally a \texttt{@unit}. It \textbf{must} also have a
+\texttt{@dmrole} attribute, whose value \textbf{must} be a valid
+vodml-ref defined in one of the declared models (\ref{sec:norm-model})
+and identify a VO-DML role with a primitive type.
+
+\subsubsection{Attributes: \texttt{CONSTANT}}\label{sec:norm-constant}
+
+A \texttt{CONSTANT} is a reference to a VOTable \texttt{PARAM}. This
+element can be used in place of a \texttt{LITERAL} to point to an
+existing \texttt{PARAM} in the same VOTable, avoiding duplicated values.
+
+Note that the target of the reference \textbf{must} be a
+\texttt{PARAM}.\footnote{There are a few design considerations behind
+  the choice of not including \texttt{PARAM}s, \texttt{PARAMref}s and
+  \texttt{FIELDref}s directly in this specification. One is that the
+  VO-DML mapping schema might be used outside of is VOTable context to
+  describe and map data model instances in XML. The other is to keep the
+  VOTable and VO-DML schemata as much decoupled as possible, in order to
+  facilitate future revisions. Also, \texttt{PARAM} is too rich of an
+  element with its own attributes and semantics. Such semantics are
+  rather different than the ones in \texttt{VO-DML}, in particular
+  regarding the different kinds of types (\texttt{@utype},
+  \texttt{@xtype}, \texttt{@datatype}) and annotations
+  (\texttt{@arraysize}, \texttt{@ucd}) that a \texttt{PARAM} is composed
+  of, which do not have an equivalent in VO-DML.}
 
 \subsubsection{Template Attributes:
-\texttt{COLUMN}}\label{template-attributes-column}
+\texttt{COLUMN}}\label{sec:norm-column}
 
-\subsubsection{Containers:
-\texttt{CONTAINER}}\label{containers-container}
+A \texttt{COLUMN} is a reference to a VOTable \texttt{FIELD}. Instances
+representing attributes as \texttt{COLUMN}s \textbf{must} be defined
+inside a \texttt{TEMPLATES} element. A \texttt{COLUMN} \textbf{must}
+have a \texttt{@dmtype} attribute whose value \textbf{must} be a valid
+vodml-ref defined by one of the declared models (\ref{sec:norm-model}).
+Such vodml-ref \textbf{must} identify the VO-DML type corresponding to
+the enclosing attribute's role.
 
-\subsubsection{Containers:
-\texttt{PRIMARYKEY}}\label{containers-primarykey}
+\subsubsection{References: \texttt{REFERENCE}}\label{sec:norm-reference}
 
-\subsubsection{Containers:
-\texttt{FOREIGNKEY}}\label{containers-foreignkey}
+A reference is a relationship between a referring instance and a
+referred instance. While the referring instance can be both an
+\textbf{\texttt{ObjectType}} and a \textbf{\texttt{DataType}} the
+referred instance \textbf{must} be of an \textbf{\texttt{ObjectType}}.
+
+The reference can be to an identified direct instance in the same file
+(\ref{sec:norm-idref}), to a remote instance identified by a URI
+(\ref{sec:norm-remote-reference}), or to an instance indirectly
+represented by a template, through a foreign key pointing at the
+referred instance's primary key (\ref{sec:norm-reference-foreignkey}).
+
+\subsubsection{References: \texttt{IDREF}}\label{sec:norm-idref}
+
+In order to use \texttt{IDREF} the referred instance \textbf{must} be an
+instance of an \textbf{\texttt{ObjectType}}, it \textbf{must} be
+serialized as a direct instance, and it \textbf{must} be located in the
+same document as the referrer instance. Also, there \textbf{must} be a
+correspondent relationship defined in the VO-DML description of the
+model in which the referrer type is defined.
 
 \subsubsection{References:
-\texttt{REFERENCE}}\label{references-reference}
+\texttt{REMOTEREFERENCE}}\label{sec:norm-remote-reference}
 
-\subsubsection{References: \texttt{IDREF}}\label{references-idref}
+In order to use \texttt{REMOTEREFERENCE} the referred instance
+\textbf{must} be an instance of an \textbf{\texttt{ObjectType}}, it
+\textbf{must} be serialized as a direct instance, and it \textbf{must}
+be located in a different document than the referrer instance. Also,
+there \textbf{must} be a correspondent relationship defined in the
+VO-DML description of the model in which the referrer type is defined.
+
+\texttt{REMOTEREFERENCE} is of type \texttt{xs:anyURI} an \textbf{must}
+identify a globally unique instance through a specific URI (e.g.~an IVOA
+Resource Name), \textbf{or} a URL to the serialization of the instance,
+but the URL \textbf{must} be persistent.
 
 \subsubsection{References:
-\texttt{REMOTEREFERENCE}}\label{references-remotereference}
+\texttt{FOREIGNKEY}}\label{sec:norm-reference-foreignkey}
 
-\subsubsection{References:
-\texttt{FOREIGNKEY}}\label{references-foreignkey}
+The referred instance may be serialized as a row in a table different
+than the one serializing the referrer (if any). In this case the
+reference is annotated through a \texttt{FOREIGNKEY}
+(\ref{sec:norm-foreign}).
 
-\subsubsection{Compositions:
-\texttt{COMPOSITION}}\label{compositions-composition}
+\subsubsection{Composition:
+\texttt{COMPOSITION}}\label{sec:norm-composition}
 
-\subsubsection{Compositions:
-\texttt{INSTANCE}}\label{compositions-instance}
+A composition is a whole-part relationship between
+\textbf{\texttt{ObjectTypes}}, where one instance is said to be the
+container, or parent, or whole, and the other is said to be the
+contained, or child, or part. In a VOTable composed instances may be
+serialized directly within the parent instance
+(\ref{sec:norm-instance}) if the parent is directly representated or if
+the part is serialized in the same table as the parent, or externally
+(\ref{sec:norm-extinstances}) if the part is indirectly represented and
+serialized in a different table. Children refer back to their parent
+through an implicit container relationship (\ref{sec:norm-container}).
+The reference is achieved through a foreign key
+(\ref{sec:norm-foreign}) referencing the container's primary key
+(\ref{sec:norm-primary}).
 
-\subsubsection{Compositions:
-\texttt{EXTINTANCES}}\label{compositions-extintances}
+In order to be valid, the composition \textbf{must} link two
+\textbf{\texttt{ObjectType}}s and there must be a correspondent
+relationship defined in the VO-DML description of the model. The number
+of contained instances must be compatible with the relationship's
+multiplicity.
+
+The \texttt{COMPOSITION} element \textbf{must} have a \texttt{@dmrole}
+attribute, whose value \textbf{must} be a valid vodml-ref identifying a
+composition relationship in one of the models declared
+(\ref{sec:norm-model}), and types of the parent and children
+\textbf{must} be compatible with the relationship defined in that model.
+
+\subsubsection{Composition:
+\texttt{EXTINTANCES}}\label{sec:norm-extinstances}
+
+A composition relationship can delegate the definition of some of the
+children to an external \texttt{INSTANCE} declaration elsewhere in the
+file, for example if the instances are defined in a different table.
+
+The \texttt{EXTINSTANCES} element is useful for clients in that it links
+instances from the parent to the children. In relational data bases, the
+composition relatioship is usually implementing by referencing objects
+from the parts to the whole, not the other way around (see
+\ref{sec:norm-container}). This specification provides a way for
+containers to declare where the contained objects are located and
+described.
+
+(\textbf{TODO} this leaves the door open to the possibility that
+children refer to their parents but not the other way around. Should
+clients be prepared to this possibility? If so, then the
+\texttt{EXTINSTANCES} element is redundant. Otherwise what seems to be
+redundant is the \texttt{CONTAINER} element).
+
+\subsubsection{Composition:
+\texttt{CONTAINER}}\label{sec:norm-container}
+
+On the part side of a composition relationship, especially in complex
+Object Relational Mapping applications, parts include a reference to
+their containers. This is consistent with the relational implementation
+of the composition relationship. For more details see
+\ref{sec:norm-foreign}.
+
+\subsubsection{\texttt{PRIMARYKEY}}\label{sec:norm-primary}
+
+Instances \textbf{may} be identified by an object identifier through the
+\texttt{PRIMARYKEY} element.
+
+An object identifier can have any number of \texttt{PKFIELD} fields.
+Each \texttt{PKFIELD} is a choice among a \texttt{LITERAL}, i.e.~a local
+value (\ref{sec:norm-literal}), a \texttt{COLUMN}, i.e.~a reference to
+a cell value (\ref{sec:norm-column}), or a \texttt{CONSTANT}, i.e.~a
+reference to a \texttt{PARAM} (\ref{sec:norm-constant}).
+
+Fields are values that make up the object identifier. Generally only one
+value is used, but it is not uncommon for objects to be identified by a
+tuple of values.
+
+Primary keys \textbf{must} be unique within object types. In other terms
+there can be no two instances with the same primary key in a single
+file. If two instances appear to have the same primary key then client's
+behavior is undefined.
+
+\subsubsection{\texttt{FOREIGNKEY}}\label{sec:norm-foreign}
+
+In Object Relational Mapping a foreign key is the mechanism by which
+instances in a table identify other instances in many-to-one and
+many-to-many relationships with itself.
+
+In a simple model where a source can be observed in an arbitrary number
+of photometric filters, one would usually have a table for sources, with
+IDs and general metadata, a table for photometric filters, and a table
+for luminosity measurements of a source. In this implementation, the
+Luminosity entity is in a many-to-one relationship with both the Source
+and the Filter tables. This relationship is implemented by providing the
+Luminosity table with two foreign key columns to the Source and
+Luminosity tables. The value of the foreign keys is the ID of the Source
+and Filter instances to which each luminosity measurements refer to.
+
+A query might query the data base for ``all the luminosity measurements
+of Source 3c273'', implying the ownership relationship of a Source with
+its Luminosities, although there is no actual reference from the Source
+table to the Luminosity table.
+
+Providing the parent table with a column for each reference to an
+arbitrary number of potential children is clearly unsustainable, if at
+all possible.
+
+A \texttt{FOREIGNKEY} can provide a \texttt{TARGETID} to point to an
+identified element in the same file. (\textbf{TODO} Be more specific
+here on how to use \texttt{TARGETID})
+
+A \texttt{FOREIGNKEY} \textbf{must} contain at least one
+\texttt{PKFIELD}, and the structure of the key fields must be compatible
+with the one of the primary keys of the referenced instance.
 
 \subsection{Representing Types}\label{sec:norm-types}
 
-\subsubsection{\textbf{\texttt{PrimitiveType}}}\label{primitivetype}
+\subsubsection{\textbf{\texttt{PrimitiveType}}}\label{sec:norm-map-primitive}
+
+Primitive Types are types without structure, and so instances are
+represented by a simple value. They can be mapped to:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  a \texttt{LITERAL} element if the value is provided in the file's
+  header (\ref{sec:norm-literal});
+\item
+  a \texttt{CONSTANT}, i.e.~a reference to a \texttt{PARAM}, if the
+  value is mapped to the value of an existing \texttt{PARAM}
+  (\ref{sec:norm-constant});
+\item
+  a \texttt{COLUMN}, i.e.~a reference to a \texttt{FIELD}, if the value
+  is in a table cell. In this case we say that the enclosing instance is
+  indirectly represented by an \texttt{INSTANCE} template, with actual
+  instances serialized in tabular format (\ref{sec:norm-column}).
+\end{itemize}
 
 \subsubsection{\textbf{\texttt{Enumeration}} and
-\textbf{\texttt{EnumerationLiteral}}}\label{enumeration-and-enumerationliteral}
+\textbf{\texttt{EnumerationLiteral}}}\label{sec:norm-map-enumeration}
 
-\subsubsection{\textbf{\texttt{ObjectType}}}\label{objecttype}
+Enumerations are primitive types with a limited number of possible,
+enumerated values. Enumerations are mapped to the same elements as
+primitive types (\ref{sec:norm-map-primitive}), with the limitation
+that values \textbf{must} be valid enumeration literals compatible with
+the type declared by the enclosing \texttt{ATTRIBUTE} element.
 
-\subsubsection{\textbf{\texttt{DataType}}}\label{datatype}
+\subsubsection{\textbf{\texttt{ObjectType}}}\label{sec:norm-object}
 
-\subsubsection{Type Extensions}\label{type-extensions}
+Object types are mapped to the \texttt{INSTANCE} element
+(\ref{sec:norm-instance}). Object types can have
+\textbf{\texttt{DataType}}d attributes, which are mapped to the
+\texttt{ATTRIBUTE} element (\ref{sec:norm-attribute}). The
+\texttt{ATTRIBUTE} \textbf{must} have a \texttt{@dmrole} corresponding
+to the model-defined role identifier. In turn, the \texttt{ATTRIBUTE}
+\textbf{must} contain an \texttt{INSTANCE} with a type compatible with
+the attribute's role. Note that the type can be the type declared
+directly in the model or any specialization of that type defined in any
+model declared via the \texttt{MODEL} element.
+
+Object types can also have attributes with a \texttt{PrimitiveType} type
+or with an \texttt{Enumeration} type. In this case attributes are mapped
+following the patterns described in \ref{sec:norm-map-primitive} and
+\ref{sec:norm-map-enumeration} respectively.
+
+Object types can hold references to instances of other object types.
+This roles are mapped to the \texttt{REFERENCE} element
+(\ref{ec:norm-reference}). In this case the \texttt{REFERENCE}
+\textbf{must} have a \texttt{@dmrole} corresponding to the model-defined
+reference relationship.
+
+Finally, object types can be in composition relationships with other
+object types. An object type can be both the \emph{parent}, or
+\emph{whole}, and \emph{contain} its \emph{children}, or \emph{parts}
+(\ref{sec:norm-composition}).
+
+A parent \texttt{INSTANCE} will have a \texttt{COMPOSITION} element with
+the \texttt{@dmrole} of the composition relationship defined in the
+model.
+
+In addition to \texttt{INSTANCE}s, parents can also point to instances
+described elsewhere in the document through the \texttt{EXTINSTANCE}
+elements.
+
+For each composition relationship an arbitrary number of instances may
+be present, with two limitations:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  the number of instances must be compatible with the multiplicity of
+  the relationship;
+\item
+  the instances must have \texttt{@dmtype}s compatible with the data
+  type of the relationship defined in the model, i.e. the exact type
+  declared there or any of its subtypes.
+\end{itemize}
+
+A children \texttt{INSTANCE} will have a \texttt{CONTAINER} element
+pointing at the
+
+As described in \ref{sec:norm-globals} and \ref{sec:norm-templates} an
+\textbf{\texttt{ObjectType}} can be represented both directly or
+indirectly through standalone instances or instance templates
+respectively.
+
+\subsubsection{\textbf{\texttt{DataType}}}\label{sec:norm-data}
+
+Data types are mostly mapped like object types. This removes a lot of
+burden from data providers and clients that do not need to validate
+datasets, simplifying the syntax.
+
+Some constaints apply to \textbf{\texttt{DataType}}s. They are not
+enforced through XSD but datasets \textbf{must} meet such constraints in
+order to validate.
+
+VO-DML \textbf{\texttt{DataType}}s \textbf{cannot} be in composition
+relationship with any other types, so \texttt{COMPOSITION} and
+\texttt{CONTAINER} \textbf{cannot} be used inside an \texttt{INSTANCE}
+representing a \textbf{\texttt{DataType}}. Similarly,
+\textbf{\texttt{DataType}}s cannot have a \texttt{PRIMARYKEY}.
+
+Also, there \textbf{cannot} be references pointing to a
+\textbf{\texttt{DataType}} instance.
+
+\subsubsection{Type Generalization and
+Inheritance}\label{type-generalization-and-inheritance}
+
+(**TODO This needs to be expanded and completed with examples)
+
+VO-DML allows types to \emph{extend} or \emph{specialize} other types.
+As it happens in object oriented languages, an instance of a
+specialization, or \emph{subtype} of a more general type, or
+\emph{supertype}, is also a valid instance of the supertype, and can be
+used wherever an instance of a supertype is expected.
+
+This means that clients of the supertype must be able to recognize
+instances of the supertype even though a specialized subtype might have
+been instantiated. This case includes all kinds of clients discussed in
+\ref{sec:clients}. What we called \emph{guru} clients can read the
+VO-DML description files and can figure out the generalization
+relationships. \emph{Advanced} clients might or might not care about
+generalizations, but generalization must be mapped with particular care
+so that \emph{simple} clients can find the information they are seeking,
+even when a type they are interested in is present as an instance of one
+of its subtypes.
+
+Since we currently provide only one \texttt{@dmtype} per
+\texttt{INSTANCE}, only one type can be expressed for each instance.
+This type \textbf{must} always be the actual type of the instance. This
+means that clients \textbf{cannot} rely on the instance's type in order
+to recognize instances, unless they rely on VO-DML-aware specialized
+software libraries.
+
+In VO-DML specialized types inherit all of the supertype's vodml-id
+descriptors, including the prefix. This means that \texttt{@dmrole}s can
+always be matched, whether or not an instance represents a supertype or
+one of its subtypes.
 
 \subsubsection{Quantities}\label{quantities}
 
-\section{The VODML annotation elements in the VOTable schema}\label{sec:schema}
+(\textbf{TODO} This is a placeholder for specific mapping of ivoa
+quantities, but we need the ivoa model to settle)
+
+\subsubsection{Comparison of \texttt{EXTINSTANCES} and
+\texttt{INSTANCE}}\label{comparison-of-extinstances-and-instance}
+
+The distinction between \texttt{INSTANCE} and \texttt{EXTINSTANCES} as
+children of the \texttt{COMPOSITION} element allows for common object
+relational mappings to be used. In a completely normalized
+implementation each type may be serialized in its own table. However, in
+practice astronomical archives and datasets show some form of
+flattening, i.e.~some types are serialized as part of the table that
+represent the parent type, or multiple instances of the part type are
+serialized in the same table. This is the case, for instance, of sources
+and their luminosities.
+
+In a mission's archive, and in the data sets they serve, usually a
+single table represents a number of photometric measurements in
+different filters. This corresponds to a VO-DML annotation with an
+indirect \texttt{INSTANCE} for the Source type with a
+\texttt{COMPOSITION} element containing a number of indirect
+\texttt{INSTANCE}s for the luminosity measurements. Such instances
+correpond to the finite set of filters (and errors, and other kinds of
+metadata) specific to a particular mission. All the \texttt{INSTANCE}s,
+in this example, would point to columns in the same table.
+
+However, consider now the case of a data set that contains a number of
+sources, each with an arbitrary number of photometric measurements
+coming from different missions and archives. In this case a single
+flattened table is not an efficient or effective way of serializing such
+instances, and multiple tables can be used for sources and luminosities.
+The \texttt{EXTINSTANCES} mechanism provides a mechanism for
+representing this pattern. (\textbf{TODO} However, the safest and most
+efficient way is to just have children refer to their containers.)
+
+\subsection{Full Example}\label{full-example}
+
+\begin{verbatim}
+file: instances/complex.vodsl
+caption: |
+    Example covering all of the XML elements and mapping patterns, including multi-table Object Relational Mapping.
+id: lst:complex
+classes:
+  - xml
+  - numberLines
+----
+\end{verbatim}
+\section{VO-DML XML schema NORMATIVE}\label{sec:schema}
+
+In order to keep the VOTable standard as stable as possible and to
+better separate the concerns of the different documents, the elements
+used for mapping data model instances are defined in a standalone
+schema, that is then imported by the VOTable 1.4 schema itself.
+
+\subsection{Additions to VOTable}\label{additions-to-votable}
+
+SOME TEXT HERE WAS NOT PROPERLY TRANSLATED FROM THE MARKDOWN: see "005-appendices.md for original"
+
+\subsection{VODML-mapping shema}\label{vodml-mapping-shema}
+
+\begin{verbatim}
+file: data/VODML-mapping.xsd
+classes:
+ - xml
+ - numberLines
+ - resizable
+caption: VODML additions to the VOTable schema.
+id: lst:mapping
+\end{verbatim}
 
 \pagebreak
 \bibliography{ivoatex/ivoabib,ivoatex/docrepo}
